@@ -16,6 +16,9 @@ const Header = () => {
   const navigation = [
     { name: "Início", href: "/" },
     { name: "Discos", href: "/produtos" },
+    { name: "login", href: "/login"},
+    { name: "Cadastro", href: "/cadastro" },
+    { name: "Carrinho", href: "/carrinho" }
   ];
 
     return (
