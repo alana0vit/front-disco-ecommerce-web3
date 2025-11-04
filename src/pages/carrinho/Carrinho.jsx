@@ -123,7 +123,7 @@ const Cart = () => {
                   <div key={item.id} className="p-6">
                     <div className="flex items-start space-x-4">
                       {/* Imagem do Disco */}
-                      <div className="flex-shrink-0">
+                      <div className="shrink-0">
                         <img
                           src={item.image}
                           alt={item.name}
