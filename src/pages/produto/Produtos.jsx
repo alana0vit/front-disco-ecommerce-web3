@@ -1,25 +1,25 @@
 // src/pages/Products.js
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { 
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import {
   MagnifyingGlassIcon,
   FunnelIcon,
-  ShoppingCartIcon
-} from '@heroicons/react/24/outline';
-import { productService, categoryService } from '../services/api';
+  ShoppingCartIcon,
+} from "@heroicons/react/24/outline";
+import { productService, categoryService } from "../../services/Produto";
 
-const Products = () => {
+const Produtos = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // Estados para filtros
   const [filters, setFilters] = useState({
-    nome: '',
-    categoria: '',
-    precoMin: '',
-    precoMax: ''
+    nome: "",
+    categoria: "",
+    precoMin: "",
+    precoMax: "",
   });
   const [showFilters, setShowFilters] = useState(false);
 
@@ -33,20 +33,20 @@ const Products = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       let data;
       if (Object.keys(filterParams).length > 0) {
         data = await productService.filterProducts(filterParams);
       } else {
         data = await productService.getAllProducts();
       }
-      
+
       // Filtrar apenas produtos ativos (se a propriedade existir)
-      const activeProducts = data.filter(product => product.ativo !== false);
+      const activeProducts = data.filter((product) => product.ativo !== false);
       setProducts(activeProducts);
     } catch (err) {
-      setError('Erro ao carregar produtos');
-      console.error('Error loading products:', err);
+      setError("Erro ao carregar produtos");
+      console.error("Error loading products:", err);
     } finally {
       setLoading(false);
     }
@@ -57,7 +57,7 @@ const Products = () => {
       const data = await categoryService.getCategories();
       setCategories(data);
     } catch (err) {
-      console.error('Error loading categories:', err);
+      console.error("Error loading categories:", err);
     }
   };
 
@@ -70,27 +70,27 @@ const Products = () => {
   // Limpar filtros
   const clearFilters = () => {
     setFilters({
-      nome: '',
-      categoria: '',
-      precoMin: '',
-      precoMax: ''
+      nome: "",
+      categoria: "",
+      precoMin: "",
+      precoMax: "",
     });
     loadProducts();
   };
 
   // Adicionar ao carrinho
   const addToCart = (product) => {
-    console.log('Adicionado ao carrinho:', product);
+    console.log("Adicionado ao carrinho:", product);
     // TODO: Implementar contexto do carrinho
     alert(`${product.nome} adicionado ao carrinho!`);
   };
 
   // Função para obter nome da categoria
   const getCategoryName = (category) => {
-    if (typeof category === 'object' && category.nome) {
+    if (typeof category === "object" && category.nome) {
       return category.nome;
     }
-    return 'Categoria não especificada';
+    return "Categoria não especificada";
   };
 
   if (loading) {
@@ -145,7 +145,9 @@ const Products = () => {
                   type="text"
                   placeholder="Buscar discos, artistas..."
                   value={filters.nome}
-                  onChange={(e) => setFilters({ ...filters, nome: e.target.value })}
+                  onChange={(e) =>
+                    setFilters({ ...filters, nome: e.target.value })
+                  }
                   className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                 />
                 <MagnifyingGlassIcon className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
@@ -181,12 +183,17 @@ const Products = () => {
                 </label>
                 <select
                   value={filters.categoria}
-                  onChange={(e) => setFilters({ ...filters, categoria: e.target.value })}
+                  onChange={(e) =>
+                    setFilters({ ...filters, categoria: e.target.value })
+                  }
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-purple-600"
                 >
                   <option value="">Todas as categorias</option>
                   {categories.map((category) => (
-                    <option key={category.idCategoria} value={category.idCategoria}>
+                    <option
+                      key={category.idCategoria}
+                      value={category.idCategoria}
+                    >
                       {category.nome}
                     </option>
                   ))}
@@ -202,7 +209,9 @@ const Products = () => {
                   type="number"
                   placeholder="R$ 0,00"
                   value={filters.precoMin}
-                  onChange={(e) => setFilters({ ...filters, precoMin: e.target.value })}
+                  onChange={(e) =>
+                    setFilters({ ...filters, precoMin: e.target.value })
+                  }
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-purple-600"
                 />
               </div>
@@ -216,7 +225,9 @@ const Products = () => {
                   type="number"
                   placeholder="R$ 500,00"
                   value={filters.precoMax}
-                  onChange={(e) => setFilters({ ...filters, precoMax: e.target.value })}
+                  onChange={(e) =>
+                    setFilters({ ...filters, precoMax: e.target.value })
+                  }
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-purple-600"
                 />
               </div>
@@ -238,7 +249,10 @@ const Products = () => {
         <div className="mb-8">
           <div className="flex justify-between items-center mb-6">
             <p className="text-gray-600">
-              {products.length} {products.length === 1 ? 'disco encontrado' : 'discos encontrados'}
+              {products.length}{" "}
+              {products.length === 1
+                ? "disco encontrado"
+                : "discos encontrados"}
             </p>
           </div>
 
@@ -268,7 +282,10 @@ const Products = () => {
                   {/* Imagem do Produto */}
                   <div className="relative overflow-hidden">
                     <img
-                      src={product.imagem || 'https://images.unsplash.com/photo-1598387993441-6f2ccba83b5b?w=400&h=400&fit=crop'}
+                      src={
+                        product.imagem ||
+                        "https://images.unsplash.com/photo-1598387993441-6f2ccba83b5b?w=400&h=400&fit=crop"
+                      }
                       alt={product.nome}
                       className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
                     />
@@ -288,9 +305,9 @@ const Products = () => {
                       {product.nome}
                     </h3>
                     <p className="text-gray-600 text-sm mb-2 line-clamp-2">
-                      {product.descricao || 'Descrição não disponível'}
+                      {product.descricao || "Descrição não disponível"}
                     </p>
-                    
+
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-2xl font-bold text-purple-600">
                         R$ {parseFloat(product.preco).toFixed(2)}
@@ -328,4 +345,4 @@ const Products = () => {
   );
 };
 
-export default Products;
+export default Produtos;

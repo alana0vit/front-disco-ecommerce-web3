@@ -1,90 +1,208 @@
-// src/pages/Home.tsx
-import { Link } from 'react-router-dom';
-import { 
+// src/pages/Home.jsx
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import {
   MusicalNoteIcon,
   ArrowRightIcon,
   StarIcon,
   TruckIcon,
   ShieldCheckIcon,
-  ArrowPathIcon
-} from '@heroicons/react/24/outline';
+  ArrowPathIcon,
+} from "@heroicons/react/24/outline";
 
-import HeroCarousel from '../components/Carrossel';
+import api from "../services/api";
+import HeroCarousel from "../components/Carrossel";
+import Header from "../components/Header";
+import Carrinho from "../pages/carrinho/Carrinho";
+import Checkout from "../pages/carrinho/Checkout";
 
 const Home = () => {
-  // Dados mockados para produtos em destaque
-  const featuredProducts = [
-    {
-      id: 1,
-      name: 'The Dark Side of the Moon',
-      artist: 'Pink Floyd',
-      price: 129.90,
-      category: 'Rock Progressivo',
-      image: 'https://images.unsplash.com/photo-1598387993441-6f2ccba83b5b?w=400&h=400&fit=crop',
-      rating: 5
-    },
-    {
-      id: 2,
-      name: 'Kind of Blue',
-      artist: 'Miles Davis',
-      price: 119.90,
-      category: 'Jazz',
-      image: 'https://images.unsplash.com/photo-1571330735066-03aaa9429d89?w=400&h=400&fit=crop',
-      rating: 5
-    },
-    {
-      id: 3,
-      name: 'Abbey Road',
-      artist: 'The Beatles',
-      price: 109.90,
-      category: 'Rock',
-      image: 'https://images.unsplash.com/photo-1593696141114-c2908a590b56?w=400&h=400&fit=crop',
-      rating: 4
-    },
-    {
-      id: 4,
-      name: 'Thriller',
-      artist: 'Michael Jackson',
-      price: 99.90,
-      category: 'Pop',
-      image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=400&fit=crop',
-      rating: 4
-    }
-  ];
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [carrinhoAberto, setCarrinhoAberto] = useState(false);
+  const [checkoutPedido, setCheckoutPedido] = useState(null);
 
-  const categories = [
-    { name: 'Rock', count: 156, image: '🎸' },
-    { name: 'Jazz', count: 89, image: '🎷' },
-    { name: 'MPB', count: 124, image: '🎵' },
-    { name: 'Clássica', count: 67, image: '🎻' },
-    { name: 'Eletrônica', count: 92, image: '🎹' },
-    { name: 'Hip Hop', count: 78, image: '🎤' }
-  ];
-
+  // Dados estáticos para features
   const features = [
     {
       icon: <TruckIcon className="h-8 w-8 text-purple-500" />,
-      title: 'Entrega Rápida',
-      description: 'Entregamos em todo o Brasil com segurança e agilidade'
+      title: "Entrega Rápida",
+      description: "Entregamos em todo o Brasil com segurança e agilidade",
     },
     {
       icon: <ShieldCheckIcon className="h-8 w-8 text-purple-500" />,
-      title: 'Compra Segura',
-      description: 'Seus dados protegidos com criptografia de ponta'
+      title: "Compra Segura",
+      description: "Seus dados protegidos com criptografia de ponta",
     },
     {
       icon: <ArrowPathIcon className="h-8 w-8 text-purple-500" />,
-      title: 'Garantia Discool',
-      description: 'Troca gratuita em caso de problemas com o produto'
-    }
+      title: "Garantia Discool",
+      description: "Troca gratuita em caso de problemas com o produto",
+    },
   ];
+
+  // Buscar produtos em destaque
+  const fetchFeaturedProducts = async () => {
+    try {
+      const response = await api.get("/produto/disponiveis");
+      const produtosDisponiveis = response.data.filter(
+        (produto) => produto.ativo && produto.estoque > 0
+      );
+      const ultimosProdutos = produtosDisponiveis.slice(-4).reverse();
+
+      const produtosFormatados = ultimosProdutos.map((produto) => ({
+        id: produto.idProduto,
+        name: produto.nome,
+        artist: produto.descricao || "Artista não informado",
+        price: parseFloat(produto.preco),
+        category: produto.categoria?.nome || "Sem categoria",
+        image:
+          produto.imagem ||
+          "https://images.unsplash.com/photo-1598387993441-6f2ccba83b5b?w=400&h=400&fit=crop",
+        rating: 4,
+        // Dados completos para o carrinho
+        idProduto: produto.idProduto,
+        nome: produto.nome,
+        preco: parseFloat(produto.preco),
+        estoque: produto.estoque,
+        imagem: produto.imagem,
+      }));
+
+      setFeaturedProducts(produtosFormatados);
+    } catch (err) {
+      console.error("Erro ao buscar produtos em destaque:", err);
+      setError("Erro ao carregar produtos em destaque");
+    }
+  };
+
+  // Buscar categorias
+  const fetchCategories = async () => {
+    try {
+      const categoriasEstaticas = [
+        { name: "Rock", count: 0, image: "🎸" },
+        { name: "Jazz", count: 0, image: "🎷" },
+        { name: "MPB", count: 0, image: "🎵" },
+        { name: "Clássica", count: 0, image: "🎻" },
+        { name: "Eletrônica", count: 0, image: "🎹" },
+        { name: "Hip Hop", count: 0, image: "🎤" },
+      ];
+
+      if (featuredProducts.length > 0) {
+        const categoriasComContagem = categoriasEstaticas.map((cat) => ({
+          ...cat,
+          count: featuredProducts.filter((prod) => prod.category === cat.name)
+            .length,
+        }));
+        setCategories(categoriasComContagem);
+      } else {
+        setCategories(categoriasEstaticas);
+      }
+    } catch (err) {
+      console.error("Erro ao buscar categorias:", err);
+      setCategories([
+        { name: "Rock", count: 156, image: "🎸" },
+        { name: "Jazz", count: 89, image: "🎷" },
+        { name: "MPB", count: 124, image: "🎵" },
+        { name: "Clássica", count: 67, image: "🎻" },
+        { name: "Eletrônica", count: 92, image: "🎹" },
+        { name: "Hip Hop", count: 78, image: "🎤" },
+      ]);
+    }
+  };
+
+  // Carregar dados
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        await fetchFeaturedProducts();
+      } catch (err) {
+        setError("Erro ao carregar dados da página inicial");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  // Atualizar categorias quando os produtos carregarem
+  useEffect(() => {
+    if (featuredProducts.length > 0) {
+      fetchCategories();
+    }
+  }, [featuredProducts]);
+
+  // Funções do carrinho
+  const handleAbrirCarrinho = () => {
+    setCarrinhoAberto(true);
+  };
+
+  const handleFecharCarrinho = () => {
+    setCarrinhoAberto(false);
+  };
+
+  const handleIniciarCheckout = (pedido) => {
+    setCheckoutPedido(pedido);
+    setCarrinhoAberto(false);
+  };
+
+  const handleFinalizarCompra = () => {
+    setCheckoutPedido(null);
+    window.location.href = "/";
+  };
+
+  // Se estiver no checkout, mostrar componente de checkout
+  if (checkoutPedido) {
+    return (
+      <Checkout
+        pedido={checkoutPedido}
+        onBack={() => setCheckoutPedido(null)}
+        onSuccess={handleFinalizarCompra}
+      />
+    );
+  }
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Carregando discos incríveis...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 text-lg mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            Tentar Novamente
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Section substituída pelo Carousel */}
+      {/* Header com integração do carrinho */}
+      <Header onAbrirCarrinho={handleAbrirCarrinho} />
+
+      {/* Hero Section */}
       <HeroCarousel />
 
-      {/* Categorias */}
+      {/* Resto do conteúdo da Home permanece igual */}
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -92,7 +210,8 @@ const Home = () => {
               Explorar por Gênero
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Encontra o som perfeito entre nossas categorias cuidadosamente organizadas
+              Encontre o som perfeito entre nossas categorias cuidadosamente
+              organizadas
             </p>
           </div>
 
@@ -100,7 +219,7 @@ const Home = () => {
             {categories.map((category) => (
               <Link
                 key={category.name}
-                to={`/categorias/${category.name.toLowerCase()}`}
+                to={`/produtos?categoria=${category.name}`}
                 className="bg-gray-50 hover:bg-purple-50 border-2 border-gray-200 hover:border-purple-300 rounded-xl p-6 text-center transition-all duration-200 group"
               >
                 <div className="text-4xl mb-3">{category.image}</div>
@@ -108,7 +227,7 @@ const Home = () => {
                   {category.name}
                 </h3>
                 <p className="text-sm text-gray-500 mt-1">
-                  {category.count} discos
+                  {category.count} {category.count === 1 ? "disco" : "discos"}
                 </p>
               </Link>
             ))}
@@ -122,10 +241,10 @@ const Home = () => {
           <div className="flex justify-between items-center mb-12">
             <div>
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                Discos em Destaque
+                Novos Lançamentos
               </h2>
               <p className="text-lg text-gray-600">
-                Seleção especial dos nossos melhores vinis
+                Últimos discos adicionados em nossa coleção
               </p>
             </div>
             <Link
@@ -137,51 +256,73 @@ const Home = () => {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {featuredProducts.map((product) => (
-              <div
-                key={product.id}
-                className="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group"
+          {featuredProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              {featuredProducts.map((product) => (
+                <div
+                  key={product.id}
+                  className="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group"
+                >
+                  <div className="relative overflow-hidden">
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute top-4 right-4 bg-purple-600 text-white px-2 py-1 rounded-full text-sm font-semibold">
+                      {product.category}
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <div className="flex items-center mb-2">
+                      {[...Array(5)].map((_, i) => (
+                        <StarIcon
+                          key={i}
+                          className={`h-4 w-4 ${
+                            i < product.rating
+                              ? "text-yellow-400 fill-current"
+                              : "text-gray-300"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <h3 className="font-bold text-lg text-gray-900 mb-1">
+                      {product.name}
+                    </h3>
+                    <p className="text-gray-600 mb-3">{product.artist}</p>
+                    <div className="flex justify-between items-center">
+                      <span className="text-2xl font-bold text-purple-600">
+                        R$ {product.price.toFixed(2)}
+                      </span>
+                      <button
+                        onClick={() => {
+                          // Aqui você precisará implementar a função adicionarAoCarrinho
+                          // ou integrar com o serviço do carrinho
+                          console.log("Adicionar produto:", product);
+                        }}
+                        className="bg-gray-900 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+                      >
+                        Adicionar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <MusicalNoteIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600 text-lg">
+                Nenhum produto disponível no momento
+              </p>
+              <Link
+                to="/produtos"
+                className="inline-block mt-4 text-purple-600 hover:text-purple-700 font-semibold"
               >
-                <div className="relative overflow-hidden">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute top-4 right-4 bg-purple-600 text-white px-2 py-1 rounded-full text-sm font-semibold">
-                    {product.category}
-                  </div>
-                </div>
-                <div className="p-6">
-                  <div className="flex items-center mb-2">
-                    {[...Array(5)].map((_, i) => (
-                      <StarIcon
-                        key={i}
-                        className={`h-4 w-4 ${
-                          i < product.rating
-                            ? 'text-yellow-400 fill-current'
-                            : 'text-gray-300'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <h3 className="font-bold text-lg text-gray-900 mb-1">
-                    {product.name}
-                  </h3>
-                  <p className="text-gray-600 mb-3">{product.artist}</p>
-                  <div className="flex justify-between items-center">
-                    <span className="text-2xl font-bold text-purple-600">
-                      R$ {product.price.toFixed(2)}
-                    </span>
-                    <button className="bg-gray-900 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors duration-200">
-                      Adicionar
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                Ver catálogo completo
+              </Link>
+            </div>
+          )}
 
           <div className="text-center mt-8 md:hidden">
             <Link
@@ -203,7 +344,8 @@ const Home = () => {
               Por que escolher a discool?
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              A melhor experiência em compra de discos de vinil, do clássico ao raro
+              A melhor experiência em compra de discos de vinil, do clássico ao
+              raro
             </p>
           </div>
 
@@ -213,15 +355,11 @@ const Home = () => {
                 key={index}
                 className="text-center p-6 rounded-2xl hover:bg-gray-50 transition-colors duration-200"
               >
-                <div className="flex justify-center mb-4">
-                  {feature.icon}
-                </div>
+                <div className="flex justify-center mb-4">{feature.icon}</div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-3">
                   {feature.title}
                 </h3>
-                <p className="text-gray-600">
-                  {feature.description}
-                </p>
+                <p className="text-gray-600">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -229,14 +367,15 @@ const Home = () => {
       </section>
 
       {/* CTA Final */}
-      <section className="py-16 bg-lienar-to-r from-purple-600 to-pink-600 text-black">
+      <section className="py-16 bg-gradient-to-r from-purple-600 to-pink-600 text-white">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <MusicalNoteIcon className="h-16 w-16 mx-auto mb-6" />
           <h2 className="text-3xl md:text-4xl font-bold mb-6">
             Pronto para começar sua coleção?
           </h2>
-          <p className="text-xl text-purple-500 mb-8">
-            Junte-se a milhares de amantes de vinil que já descobriram seus discos dos sonhos na discool
+          <p className="text-xl text-purple-100 mb-8">
+            Junte-se a milhares de amantes de vinil que já descobriram seus
+            discos dos sonhos na discool
           </p>
           <Link
             to="/cadastro"

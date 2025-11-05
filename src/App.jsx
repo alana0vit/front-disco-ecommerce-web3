@@ -4,8 +4,10 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
-import Cadastro from "./pages/Cadastro";
+import CadastroCliente from "./pages/cliente/Cadastro";
+import Perfil from "./pages/cliente/Perfil";
 import Carrinho from "./pages/carrinho/Carrinho";
+import Produtos from "./pages/produto/Produtos";
 
 function App() {
   return (
@@ -16,8 +18,11 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/cadastro" element={<Cadastro />} />
+            <Route path="/cadastro" element={<CadastroCliente />} />
+            <Route path="/perfil" element={<Perfil />} />
             <Route path="/carrinho" element={<Carrinho />} />
+
+            <Route path="/produtos" element={<Produtos />} />
             {/* Adicione outras rotas aqui posteriormente */}
           </Routes>
         </main>
