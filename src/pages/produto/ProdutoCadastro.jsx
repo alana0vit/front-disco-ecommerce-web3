@@ -1,28 +1,32 @@
-// src/pages/ProductCreate.js
-import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { 
+// src/pages/ProdutoCadastro.jsx
+import { useState, useEffect, useRef } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import {
   ArrowLeftIcon,
   PhotoIcon,
   CheckCircleIcon,
-  ExclamationCircleIcon
-} from '@heroicons/react/24/outline';
-import { productService, categoryService } from '../../services/Produto';
+  ExclamationCircleIcon,
+  XMarkIcon,
+  CloudArrowUpIcon,
+} from "@heroicons/react/24/outline";
+import { productService, categoryService } from "../../services/Produto";
 
-const ProdutoCreate = () => {
+const ProdutoCadastro = () => {
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null);
-  
+  const [imagePreview, setImagePreview] = useState(null);
+
   const [formData, setFormData] = useState({
-    nome: '',
-    descricao: '',
-    preco: '',
-    estoque: '',
+    nome: "",
+    descricao: "",
+    preco: "",
+    estoque: "",
     ativo: true,
-    imagem: '',
-    id_categoria_prod: ''
+    imagem: null, // Agora será um arquivo
+    id_categoria_prod: "",
   });
 
   const [errors, setErrors] = useState({});
@@ -37,47 +41,106 @@ const ProdutoCreate = () => {
       const data = await categoryService.getCategories();
       setCategories(data);
     } catch (err) {
-      console.error('Error loading categories:', err);
+      console.error("Error loading categories:", err);
       setSubmitStatus({
-        type: 'error',
-        message: 'Erro ao carregar categorias'
+        type: "error",
+        message: "Erro ao carregar categorias",
       });
     }
   };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === "checkbox" ? checked : value,
     }));
-    
+
     // Limpar erro do campo quando usuário começar a digitar
     if (errors[name]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: ''
+        [name]: "",
       }));
     }
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validar tipo de arquivo
+      const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+      if (!validTypes.includes(file.type)) {
+        setErrors((prev) => ({
+          ...prev,
+          imagem: "Apenas imagens JPG, PNG ou WebP são permitidas",
+        }));
+        return;
+      }
+
+      // Validar tamanho (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setErrors((prev) => ({
+          ...prev,
+          imagem: "A imagem deve ter no máximo 5MB",
+        }));
+        return;
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        imagem: file,
+      }));
+
+      // Criar preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
+
+      // Limpar erro
+      if (errors.imagem) {
+        setErrors((prev) => ({
+          ...prev,
+          imagem: "",
+        }));
+      }
+    }
+  };
+
+  const removeImage = () => {
+    setFormData((prev) => ({
+      ...prev,
+      imagem: null,
+    }));
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
   };
 
   const validateForm = () => {
     const newErrors = {};
 
     if (!formData.nome.trim()) {
-      newErrors.nome = 'Nome do produto é obrigatório';
+      newErrors.nome = "Nome do produto é obrigatório";
     }
 
     if (!formData.preco || parseFloat(formData.preco) <= 0) {
-      newErrors.preco = 'Preço deve ser maior que zero';
+      newErrors.preco = "Preço deve ser maior que zero";
     }
 
     if (!formData.estoque || parseInt(formData.estoque) < 0) {
-      newErrors.estoque = 'Estoque não pode ser negativo';
+      newErrors.estoque = "Estoque não pode ser negativo";
     }
 
     if (!formData.id_categoria_prod) {
-      newErrors.id_categoria_prod = 'Categoria é obrigatória';
+      newErrors.id_categoria_prod = "Categoria é obrigatória";
     }
 
     setErrors(newErrors);
@@ -86,11 +149,11 @@ const ProdutoCreate = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       setSubmitStatus({
-        type: 'error',
-        message: 'Por favor, corrija os erros no formulário'
+        type: "error",
+        message: "Por favor, corrija os erros no formulário",
       });
       return;
     }
@@ -99,42 +162,54 @@ const ProdutoCreate = () => {
     setSubmitStatus(null);
 
     try {
-      // Preparar dados para envio
-      const productData = {
-        ...formData,
-        preco: parseFloat(formData.preco),
-        estoque: parseInt(formData.estoque),
-        id_categoria_prod: parseInt(formData.id_categoria_prod)
-      };
+      // Criar FormData para enviar arquivo
+      const formDataToSend = new FormData();
+      formDataToSend.append("nome", formData.nome);
+      formDataToSend.append("descricao", formData.descricao);
+      formDataToSend.append("preco", parseFloat(formData.preco));
+      formDataToSend.append("estoque", parseInt(formData.estoque));
+      formDataToSend.append("ativo", formData.ativo);
+      formDataToSend.append(
+        "id_categoria_prod",
+        parseInt(formData.id_categoria_prod)
+      );
 
-      await productService.createProduct(productData);
-      
+      // Adicionar imagem se existir
+      if (formData.imagem) {
+        formDataToSend.append("imagem", formData.imagem);
+      }
+
+      await productService.createProduct(formDataToSend);
+
       setSubmitStatus({
-        type: 'success',
-        message: 'Produto cadastrado com sucesso!'
+        type: "success",
+        message: "Produto cadastrado com sucesso!",
       });
 
       // Limpar formulário após sucesso
       setFormData({
-        nome: '',
-        descricao: '',
-        preco: '',
-        estoque: '',
+        nome: "",
+        descricao: "",
+        preco: "",
+        estoque: "",
         ativo: true,
-        imagem: '',
-        id_categoria_prod: ''
+        imagem: null,
+        id_categoria_prod: "",
       });
+      setImagePreview(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
 
       // Redirecionar após 2 segundos
       setTimeout(() => {
-        navigate('/produtos');
+        navigate("/produtos");
       }, 2000);
-
     } catch (err) {
-      console.error('Error creating product:', err);
+      console.error("Error creating product:", err);
       setSubmitStatus({
-        type: 'error',
-        message: 'Erro ao cadastrar produto. Tente novamente.'
+        type: "error",
+        message: "Erro ao cadastrar produto. Tente novamente.",
       });
     } finally {
       setLoading(false);
@@ -168,13 +243,15 @@ const ProdutoCreate = () => {
 
           {/* Alert de Status */}
           {submitStatus && (
-            <div className={`mx-6 mt-6 p-4 rounded-lg ${
-              submitStatus.type === 'success' 
-                ? 'bg-green-50 border border-green-200 text-green-800'
-                : 'bg-red-50 border border-red-200 text-red-800'
-            }`}>
+            <div
+              className={`mx-6 mt-6 p-4 rounded-lg ${
+                submitStatus.type === "success"
+                  ? "bg-green-50 border border-green-200 text-green-800"
+                  : "bg-red-50 border border-red-200 text-red-800"
+              }`}
+            >
               <div className="flex items-center">
-                {submitStatus.type === 'success' ? (
+                {submitStatus.type === "success" ? (
                   <CheckCircleIcon className="h-5 w-5 mr-2" />
                 ) : (
                   <ExclamationCircleIcon className="h-5 w-5 mr-2" />
@@ -191,11 +268,14 @@ const ProdutoCreate = () => {
               <h2 className="text-xl font-semibold text-gray-900 mb-4">
                 Informações Básicas
               </h2>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Nome do Produto */}
                 <div className="md:col-span-2">
-                  <label htmlFor="nome" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label
+                    htmlFor="nome"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
                     Nome do Produto *
                   </label>
                   <input
@@ -205,7 +285,7 @@ const ProdutoCreate = () => {
                     value={formData.nome}
                     onChange={handleChange}
                     className={`w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-purple-600 focus:border-transparent ${
-                      errors.nome ? 'border-red-500' : 'border-gray-300'
+                      errors.nome ? "border-red-500" : "border-gray-300"
                     }`}
                     placeholder="Ex: The Dark Side of the Moon"
                   />
@@ -216,7 +296,10 @@ const ProdutoCreate = () => {
 
                 {/* Categoria */}
                 <div>
-                  <label htmlFor="id_categoria_prod" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label
+                    htmlFor="id_categoria_prod"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
                     Categoria *
                   </label>
                   <select
@@ -225,24 +308,34 @@ const ProdutoCreate = () => {
                     value={formData.id_categoria_prod}
                     onChange={handleChange}
                     className={`w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-purple-600 focus:border-transparent ${
-                      errors.id_categoria_prod ? 'border-red-500' : 'border-gray-300'
+                      errors.id_categoria_prod
+                        ? "border-red-500"
+                        : "border-gray-300"
                     }`}
                   >
                     <option value="">Selecione uma categoria</option>
                     {categories.map((category) => (
-                      <option key={category.idCategoria} value={category.idCategoria}>
+                      <option
+                        key={category.idCategoria}
+                        value={category.idCategoria}
+                      >
                         {category.nome}
                       </option>
                     ))}
                   </select>
                   {errors.id_categoria_prod && (
-                    <p className="mt-1 text-sm text-red-600">{errors.id_categoria_prod}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.id_categoria_prod}
+                    </p>
                   )}
                 </div>
 
                 {/* Status */}
                 <div>
-                  <label htmlFor="ativo" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label
+                    htmlFor="ativo"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
                     Status do Produto
                   </label>
                   <div className="flex items-center space-x-3 p-3 border border-gray-300 rounded-lg">
@@ -267,15 +360,20 @@ const ProdutoCreate = () => {
               <h2 className="text-xl font-semibold text-gray-900 mb-4">
                 Preço e Estoque
               </h2>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Preço */}
                 <div>
-                  <label htmlFor="preco" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label
+                    htmlFor="preco"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
                     Preço (R$) *
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-3 text-gray-500">R$</span>
+                    <span className="absolute left-3 top-3 text-gray-500">
+                      R$
+                    </span>
                     <input
                       type="number"
                       id="preco"
@@ -285,7 +383,7 @@ const ProdutoCreate = () => {
                       step="0.01"
                       min="0"
                       className={`w-full pl-10 pr-4 py-3 rounded-lg border focus:ring-2 focus:ring-purple-600 focus:border-transparent ${
-                        errors.preco ? 'border-red-500' : 'border-gray-300'
+                        errors.preco ? "border-red-500" : "border-gray-300"
                       }`}
                       placeholder="0,00"
                     />
@@ -297,7 +395,10 @@ const ProdutoCreate = () => {
 
                 {/* Estoque */}
                 <div>
-                  <label htmlFor="estoque" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label
+                    htmlFor="estoque"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
                     Estoque *
                   </label>
                   <input
@@ -308,12 +409,14 @@ const ProdutoCreate = () => {
                     onChange={handleChange}
                     min="0"
                     className={`w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-purple-600 focus:border-transparent ${
-                      errors.estoque ? 'border-red-500' : 'border-gray-300'
+                      errors.estoque ? "border-red-500" : "border-gray-300"
                     }`}
                     placeholder="Quantidade em estoque"
                   />
                   {errors.estoque && (
-                    <p className="mt-1 text-sm text-red-600">{errors.estoque}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.estoque}
+                    </p>
                   )}
                 </div>
               </div>
@@ -324,9 +427,12 @@ const ProdutoCreate = () => {
               <h2 className="text-xl font-semibold text-gray-900 mb-4">
                 Descrição
               </h2>
-              
+
               <div>
-                <label htmlFor="descricao" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="descricao"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Descrição do Produto
                 </label>
                 <textarea
@@ -341,51 +447,70 @@ const ProdutoCreate = () => {
               </div>
             </div>
 
-            {/* Imagem */}
+            {/* Upload de Imagem */}
             <div>
               <h2 className="text-xl font-semibold text-gray-900 mb-4">
                 Imagem do Produto
               </h2>
-              
-              <div>
-                <label htmlFor="imagem" className="block text-sm font-medium text-gray-700 mb-2">
-                  URL da Imagem
-                </label>
-                <div className="flex items-center space-x-4">
-                  <div className="flex-1">
-                    <input
-                      type="url"
-                      id="imagem"
-                      name="imagem"
-                      value={formData.imagem}
-                      onChange={handleChange}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                      placeholder="https://exemplo.com/imagem.jpg"
-                    />
-                  </div>
-                  <div className="flex-shrink-0">
-                    <PhotoIcon className="h-8 w-8 text-gray-400" />
-                  </div>
-                </div>
-                <p className="mt-2 text-sm text-gray-500">
-                  Cole a URL de uma imagem do produto. Deixe em branco para usar imagem padrão.
-                </p>
-              </div>
 
-              {/* Preview da Imagem */}
-              {formData.imagem && (
-                <div className="mt-4">
-                  <p className="text-sm font-medium text-gray-700 mb-2">Preview:</p>
-                  <img
-                    src={formData.imagem}
-                    alt="Preview"
-                    className="h-32 w-32 object-cover rounded-lg border border-gray-300"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                    }}
+              <div className="space-y-4">
+                {/* Área de Upload */}
+                <div
+                  onClick={triggerFileInput}
+                  className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-purple-400 transition-colors"
+                >
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImageUpload}
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    className="hidden"
                   />
+
+                  {!imagePreview ? (
+                    <div>
+                      <CloudArrowUpIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-lg font-medium text-gray-900 mb-2">
+                        Clique para fazer upload
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        PNG, JPG, WebP até 5MB
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="relative inline-block">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="h-32 w-32 object-cover rounded-lg mx-auto"
+                      />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeImage();
+                        }}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                      >
+                        <XMarkIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
-              )}
+
+                {/* Mensagem de Erro */}
+                {errors.imagem && (
+                  <p className="text-sm text-red-600">{errors.imagem}</p>
+                )}
+
+                {/* Informações */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm text-blue-800">
+                    <strong>Dica:</strong> Use imagens quadradas (1:1) para
+                    melhor visualização. Tamanho recomendado: 500x500 pixels.
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* Botões de Ação */}
@@ -401,13 +526,13 @@ const ProdutoCreate = () => {
                     Cadastrando...
                   </>
                 ) : (
-                  'Cadastrar Produto'
+                  "Cadastrar Produto"
                 )}
               </button>
-              
+
               <button
                 type="button"
-                onClick={() => navigate('/produtos')}
+                onClick={() => navigate("/produtos")}
                 disabled={loading}
                 className="flex-1 bg-gray-300 hover:bg-gray-400 disabled:bg-gray-200 text-gray-700 py-4 px-6 rounded-lg font-semibold text-lg transition-colors duration-200"
               >
@@ -421,4 +546,4 @@ const ProdutoCreate = () => {
   );
 };
 
-export default ProdutoCreate;
+export default ProdutoCadastro;
