@@ -5,7 +5,7 @@ import {
   ArrowLeftIcon,
   ShoppingCartIcon
 } from '@heroicons/react/24/outline';
-import { productService } from '../services/api';
+import { productService } from '../../services/Produto';
 
 const ProdutoDetalhes = () => {
   const { id } = useParams();

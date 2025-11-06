@@ -7,9 +7,9 @@ import {
   CheckCircleIcon,
   ExclamationCircleIcon
 } from '@heroicons/react/24/outline';
-import { productService, categoryService } from '../services/api';
+import { productService, categoryService } from '../../services/Produto';
 
-const ProductCreate = () => {
+const ProdutoCreate = () => {
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -421,4 +421,4 @@ const ProductCreate = () => {
   );
 };
 
-export default ProductCreate;
+export default ProdutoCreate;

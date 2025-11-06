@@ -1,4 +1,4 @@
-// src/components/Header.jsx
+// src/components/Header.jsx - VERSÃO COM TODAS AS PÁGINAS
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -7,19 +7,33 @@ import {
   UserIcon,
   Bars3Icon,
   XMarkIcon,
+  PlusIcon,
+  Cog6ToothIcon,
 } from "@heroicons/react/24/outline";
-import carrinhoService from "../services/Carrinhos";
+import carrinhoService from "../services/Carrinho";
 import logo from "../assets/DISCOOL_logo.png";
 
 const Header = ({ onAbrirCarrinho }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [quantidadeCarrinho, setQuantidadeCarrinho] = useState(0);
 
-  const navigation = [
+  // Navegação principal (público)
+  const navigationPublic = [
     { name: "Início", href: "/" },
     { name: "Discos", href: "/produtos" },
     { name: "Login", href: "/login" },
     { name: "Cadastro", href: "/cadastro" },
+  ];
+
+  // Navegação administrativa (para teste)
+  const navigationAdmin = [
+    { name: "Cadastrar Produto", href: "/admin/produtos/novo", icon: PlusIcon },
+    {
+      name: "Gerenciar Produtos",
+      href: "/admin/produtos",
+      icon: Cog6ToothIcon,
+    },
+    { name: "Pedidos", href: "/admin/pedidos", icon: ShoppingBagIcon },
   ];
 
   // Atualizar quantidade do carrinho
@@ -28,24 +42,9 @@ const Header = ({ onAbrirCarrinho }) => {
       setQuantidadeCarrinho(carrinhoService.getQuantidadeTotal());
     };
 
-    // Atualizar inicialmente
     updateQuantidadeCarrinho();
-
-    // Listener para mudanças no localStorage
-    const handleStorageChange = () => {
-      updateQuantidadeCarrinho();
-    };
-
-    // Adicionar listeners
-    window.addEventListener("storage", handleStorageChange);
-
-    // Polling para atualizar em caso de mudanças na mesma aba
-    const interval = setInterval(updateQuantidadeCarrinho, 1000);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      clearInterval(interval);
-    };
+    const interval = setInterval(updateQuantidadeCarrinho, 500);
+    return () => clearInterval(interval);
   }, []);
 
   const handleAbrirCarrinho = () => {
@@ -71,11 +70,26 @@ const Header = ({ onAbrirCarrinho }) => {
 
             {/* Navigation - Desktop */}
             <nav className="hidden md:flex items-center space-x-8">
-              {navigation.map((item) => (
+              {navigationPublic.map((item) => (
                 <Link
                   key={item.name}
                   to={item.href}
                   className="hover:text-purple-400 transition-colors duration-200 font-medium"
+                >
+                  {item.name}
+                </Link>
+              ))}
+
+              {/* Separador Admin */}
+              <span className="text-gray-500">|</span>
+
+              {/* Links Administrativos */}
+              {navigationAdmin.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className="hover:text-yellow-400 transition-colors duration-200 font-medium text-sm bg-gray-800 px-3 py-1 rounded"
+                  title="Área administrativa"
                 >
                   {item.name}
                 </Link>
@@ -159,8 +173,9 @@ const Header = ({ onAbrirCarrinho }) => {
         {/* Mobile Menu */}
         {isMenuOpen && (
           <div className="md:hidden border-t border-gray-700 py-4">
+            {/* Navegação Pública */}
             <nav className="flex flex-col space-y-4">
-              {navigation.map((item) => (
+              {navigationPublic.map((item) => (
                 <Link
                   key={item.name}
                   to={item.href}
@@ -170,6 +185,22 @@ const Header = ({ onAbrirCarrinho }) => {
                   {item.name}
                 </Link>
               ))}
+
+              {/* Separador Admin Mobile */}
+              <div className="border-t border-gray-600 pt-4">
+                <p className="text-sm text-gray-400 mb-2">Administração</p>
+                {navigationAdmin.map((item) => (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className="hover:text-yellow-400 transition-colors duration-200 font-medium py-2 block text-sm"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    {item.name}
+                  </Link>
+                ))}
+              </div>
+
               <div className="pt-4 border-t border-gray-700">
                 <Link
                   to="/perfil"

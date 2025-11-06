@@ -8,6 +8,8 @@ import CadastroCliente from "./pages/cliente/Cadastro";
 import Perfil from "./pages/cliente/Perfil";
 import Carrinho from "./pages/carrinho/Carrinho";
 import Produtos from "./pages/produto/Produtos";
+import ProdutoCreate from "./pages/produto/ProdutoCadastro";
+import ProdutoDetalhes from "./pages/produto/ProdutoDetalhes";
 
 function App() {
   return (
@@ -21,8 +23,10 @@ function App() {
             <Route path="/cadastro" element={<CadastroCliente />} />
             <Route path="/perfil" element={<Perfil />} />
             <Route path="/carrinho" element={<Carrinho />} />
-
             <Route path="/produtos" element={<Produtos />} />
+             <Route path="/produtos/show" element={<ProdutoDetalhes/>} />
+            {/* rotas de adm */}
+            <Route path="/admin/produtos/novo" element={< ProdutoCreate/>} />
             {/* Adicione outras rotas aqui posteriormente */}
           </Routes>
         </main>

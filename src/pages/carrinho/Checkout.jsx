@@ -1,11 +1,11 @@
 // src/components/Checkout.jsx
-import { useState } from 'react';
-import { ArrowLeftIcon, CheckIcon } from '@heroicons/react/24/outline';
-import api from '../../services/Api';
-import carrinhoService from '../../services/Carrinhos';
+import { useState } from "react";
+import { ArrowLeftIcon, CheckIcon } from "@heroicons/react/24/outline";
+import api from "../../services/Api";
+import carrinhoService from "../../services/Carrinho";
 
 const Checkout = ({ pedido, onBack, onSuccess }) => {
-  const [metodoPagamento, setMetodoPagamento] = useState('Pix');
+  const [metodoPagamento, setMetodoPagamento] = useState("Pix");
   const [loading, setLoading] = useState(false);
   const [pagamentoRealizado, setPagamentoRealizado] = useState(false);
 
@@ -15,32 +15,31 @@ const Checkout = ({ pedido, onBack, onSuccess }) => {
       // 1. Criar o pagamento
       const pagamentoData = {
         valor: pedido.valorTotal,
-        statusPag: 'Pago',
+        statusPag: "Pago",
         metodoPag: metodoPagamento,
-        pedido: { idPedido: pedido.idPedido }
+        pedido: { idPedido: pedido.idPedido },
       };
 
-      const pagamentoResponse = await api.post('/pagamento', pagamentoData);
-      
+      const pagamentoResponse = await api.post("/pagamento", pagamentoData);
+
       // 2. Atualizar o status do pedido para "Pago"
       await api.patch(`/pedido/${pedido.idPedido}`, {
-        statusPedido: 'Pago'
+        statusPedido: "Pago",
       });
 
       // 3. O estoque será atualizado AUTOMATICAMENTE no back-end
       // conforme a regra de negócio (após confirmação do pagamento)
-      
+
       setPagamentoRealizado(true);
-      
+
       // 4. Limpar carrinho e mostrar sucesso
       setTimeout(() => {
         carrinhoService.limparCarrinho();
         onSuccess();
       }, 2000);
-      
     } catch (error) {
-      console.error('Erro ao processar pagamento:', error);
-      alert('Erro ao processar pagamento. Tente novamente.');
+      console.error("Erro ao processar pagamento:", error);
+      alert("Erro ao processar pagamento. Tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -53,7 +52,9 @@ const Checkout = ({ pedido, onBack, onSuccess }) => {
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckIcon className="h-8 w-8 text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Pagamento Confirmado!</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Pagamento Confirmado!
+          </h2>
           <p className="text-gray-600 mb-6">
             Seu pedido foi processado com sucesso. O estoque foi atualizado.
           </p>
@@ -73,14 +74,19 @@ const Checkout = ({ pedido, onBack, onSuccess }) => {
       <div className="max-w-2xl mx-auto px-4">
         {/* Header */}
         <div className="flex items-center mb-8">
-          <button onClick={onBack} className="flex items-center text-purple-600 hover:text-purple-700">
+          <button
+            onClick={onBack}
+            className="flex items-center text-purple-600 hover:text-purple-700"
+          >
             <ArrowLeftIcon className="h-5 w-5 mr-2" />
             Voltar ao carrinho
           </button>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm p-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6">Finalizar Compra</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-6">
+            Finalizar Compra
+          </h1>
 
           {/* Resumo do Pedido */}
           <div className="mb-8">
@@ -103,8 +109,11 @@ const Checkout = ({ pedido, onBack, onSuccess }) => {
           <div className="mb-8">
             <h2 className="text-lg font-semibold mb-4">Método de Pagamento</h2>
             <div className="space-y-3">
-              {['Pix', 'Cartão', 'Boleto'].map((metodo) => (
-                <label key={metodo} className="flex items-center space-x-3 p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
+              {["Pix", "Cartão", "Boleto"].map((metodo) => (
+                <label
+                  key={metodo}
+                  className="flex items-center space-x-3 p-4 border rounded-lg cursor-pointer hover:bg-gray-50"
+                >
                   <input
                     type="radio"
                     name="metodoPagamento"
@@ -125,11 +134,14 @@ const Checkout = ({ pedido, onBack, onSuccess }) => {
             disabled={loading}
             className="w-full bg-purple-600 text-white py-4 rounded-lg hover:bg-purple-700 disabled:opacity-50 font-semibold text-lg"
           >
-            {loading ? 'Processando Pagamento...' : `Pagar R$ ${pedido.valorTotal.toFixed(2)}`}
+            {loading
+              ? "Processando Pagamento..."
+              : `Pagar R$ ${pedido.valorTotal.toFixed(2)}`}
           </button>
 
           <p className="text-sm text-gray-500 mt-4 text-center">
-            O estoque será atualizado automaticamente após a confirmação do pagamento.
+            O estoque será atualizado automaticamente após a confirmação do
+            pagamento.
           </p>
         </div>
       </div>

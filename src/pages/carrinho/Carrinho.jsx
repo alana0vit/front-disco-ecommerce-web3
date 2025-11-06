@@ -1,7 +1,7 @@
 // src/components/Carrinho.jsx
 import { useState, useEffect } from "react";
 import { XMarkIcon, PlusIcon, MinusIcon } from "@heroicons/react/24/outline";
-import carrinhoService from "../../services/Carrinhos";
+import carrinhoService from "../../services/Carrinho";
 import api from "../../services/Api";
 
 const Carrinho = ({ isOpen, onClose, onCheckout }) => {
