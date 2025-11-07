@@ -1,4 +1,4 @@
-// src/components/Header.jsx - VERSÃO COM TODAS AS PÁGINAS
+// src/components/Header.jsx - VERSÃO CORRIGIDA
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -13,7 +13,7 @@ import {
 import carrinhoService from "../services/Carrinho";
 import logo from "../assets/DISCOOL_logo.png";
 
-const Header = ({ onAbrirCarrinho }) => {
+const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [quantidadeCarrinho, setQuantidadeCarrinho] = useState(0);
 
@@ -27,13 +27,9 @@ const Header = ({ onAbrirCarrinho }) => {
 
   // Navegação administrativa (para teste)
   const navigationAdmin = [
-    { name: "Cadastrar Produto", href: "/admin/produtos/novo", icon: PlusIcon },
-    {
-      name: "Gerenciar Produtos",
-      href: "/admin/produtos",
-      icon: Cog6ToothIcon,
-    },
-    { name: "Pedidos", href: "/admin/pedidos", icon: ShoppingBagIcon },
+    { name: "Cadastrar Produto", 
+      href: "/admin/produtos/novo", 
+      icon: PlusIcon },
   ];
 
   // Atualizar quantidade do carrinho
@@ -46,12 +42,6 @@ const Header = ({ onAbrirCarrinho }) => {
     const interval = setInterval(updateQuantidadeCarrinho, 500);
     return () => clearInterval(interval);
   }, []);
-
-  const handleAbrirCarrinho = () => {
-    if (onAbrirCarrinho) {
-      onAbrirCarrinho();
-    }
-  };
 
   return (
     <header className="bg-gray-900 text-white sticky top-0 z-50 shadow-lg">
@@ -99,18 +89,6 @@ const Header = ({ onAbrirCarrinho }) => {
 
           {/* Lado DIREITO: Busca + Ações do usuário */}
           <div className="flex items-center space-x-4">
-            {/* Search Bar - Desktop */}
-            <div className="hidden md:flex max-w-xs">
-              <div className="relative w-64">
-                <input
-                  type="text"
-                  placeholder="Buscar discos, artistas..."
-                  className="w-full bg-gray-800 text-white px-4 py-2 rounded-lg border border-gray-700 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors"
-                />
-                <MagnifyingGlassIcon className="absolute right-3 top-2 h-5 w-5 text-gray-400" />
-              </div>
-            </div>
-
             {/* User Actions - Desktop */}
             <div className="hidden md:flex items-center space-x-2">
               <Link
@@ -120,8 +98,8 @@ const Header = ({ onAbrirCarrinho }) => {
               >
                 <UserIcon className="h-6 w-6" />
               </Link>
-              <button
-                onClick={handleAbrirCarrinho}
+              <Link
+                to="/carrinho"
                 className="p-2 hover:bg-gray-800 rounded-lg transition-colors relative"
                 title="Carrinho de compras"
               >
@@ -131,19 +109,19 @@ const Header = ({ onAbrirCarrinho }) => {
                     {quantidadeCarrinho}
                   </span>
                 )}
-              </button>
+              </Link>
             </div>
 
             {/* Mobile menu button */}
             <div className="md:hidden flex items-center space-x-2">
-              <button onClick={handleAbrirCarrinho} className="p-2 relative">
+              <Link to="/carrinho" className="p-2 relative">
                 <ShoppingBagIcon className="h-6 w-6" />
                 {quantidadeCarrinho > 0 && (
                   <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                     {quantidadeCarrinho}
                   </span>
                 )}
-              </button>
+              </Link>
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
@@ -210,19 +188,17 @@ const Header = ({ onAbrirCarrinho }) => {
                   <UserIcon className="h-5 w-5" />
                   <span>Meu Perfil</span>
                 </Link>
-                <button
-                  onClick={() => {
-                    handleAbrirCarrinho();
-                    setIsMenuOpen(false);
-                  }}
+                <Link
+                  to="/carrinho"
                   className="flex items-center space-x-2 w-full text-left py-2"
+                  onClick={() => setIsMenuOpen(false)}
                 >
                   <ShoppingBagIcon className="h-5 w-5" />
                   <span>
                     Carrinho{" "}
                     {quantidadeCarrinho > 0 && `(${quantidadeCarrinho})`}
                   </span>
-                </button>
+                </Link>
               </div>
             </nav>
           </div>

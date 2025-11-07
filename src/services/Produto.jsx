@@ -1,8 +1,9 @@
-// src/services/api.js
+// src/services/Produto.jsx - VERSÃO CORRIGIDA
 import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:3000';
 
+// Instância para requisições normais (JSON)
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -10,11 +11,25 @@ const api = axios.create({
   },
 });
 
+// Instância separada para uploads (sem Content-Type fixo)
+const apiUpload = axios.create({
+  baseURL: API_BASE_URL,
+  // Não definir Content-Type - o browser vai definir automaticamente como multipart/form-data
+});
+
 // Interceptor para tratamento de erros
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     console.error('API Error:', error);
+    return Promise.reject(error);
+  }
+);
+
+apiUpload.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.error('Upload API Error:', error);
     return Promise.reject(error);
   }
 );
@@ -57,13 +72,18 @@ export const productService = {
     return response.data;
   },
 
-  // Criar produto - POST /produto
-  createProduct: async (productData) => {
-    const response = await api.post('/produto', productData);
+  // Criar produto COM UPLOAD - POST /produto (usando FormData)
+  createProduct: async (formData) => {
+    const response = await apiUpload.post('/produto', formData, {
+      headers: {
+        // O browser vai definir automaticamente o Content-Type como multipart/form-data
+        // com o boundary correto quando usamos FormData
+      }
+    });
     return response.data;
   },
 
-  // Atualizar produto - PATCH /produto/:id
+  // Atualizar produto - PATCH /produto/:id (mantém JSON)
   updateProduct: async (id, productData) => {
     const response = await api.patch(`/produto/${id}`, productData);
     return response.data;

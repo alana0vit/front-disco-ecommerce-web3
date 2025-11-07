@@ -10,6 +10,7 @@ import Carrinho from "./pages/carrinho/Carrinho";
 import Produtos from "./pages/produto/Produtos";
 import ProdutoCreate from "./pages/produto/ProdutoCadastro";
 import ProdutoDetalhes from "./pages/produto/ProdutoDetalhes";
+import CadastroEndereco from "./pages/cliente/Endereco";
 
 function App() {
   return (
@@ -22,11 +23,15 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/cadastro" element={<CadastroCliente />} />
             <Route path="/perfil" element={<Perfil />} />
+            <Route
+              path="/perfil/enderecos/novo"
+              element={<CadastroEndereco />}
+            />
             <Route path="/carrinho" element={<Carrinho />} />
             <Route path="/produtos" element={<Produtos />} />
-             <Route path="/produtos/show" element={<ProdutoDetalhes/>} />
+            <Route path="/produtos/show" element={<ProdutoDetalhes />} />
             {/* rotas de adm */}
-            <Route path="/admin/produtos/novo" element={< ProdutoCreate/>} />
+            <Route path="/admin/produtos/novo" element={<ProdutoCreate />} />
             {/* Adicione outras rotas aqui posteriormente */}
           </Routes>
         </main>
