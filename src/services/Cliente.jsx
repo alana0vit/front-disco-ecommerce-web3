@@ -1,4 +1,7 @@
 // src/services/api.js (adicionar estas funções)
+
+import api from "./api";
+
 export const clientService = {
   // Criar cliente - POST /cliente
   createClient: async (clientData) => {

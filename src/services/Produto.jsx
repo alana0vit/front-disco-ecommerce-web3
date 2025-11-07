@@ -41,21 +41,9 @@ export const productService = {
     return response.data;
   },
 
-  // Buscar apenas produtos disponíveis - GET /produto/disponiveis
-  getAvailableProducts: async () => {
-    const response = await api.get('/produto/disponiveis');
-    return response.data;
-  },
-
   // Buscar produto por ID - GET /produto/:id
   getProductById: async (id) => {
     const response = await api.get(`/produto/${id}`);
-    return response.data;
-  },
-
-  // Buscar produto disponível por ID - GET /produto/:id/disponivel
-  getAvailableProductById: async (id) => {
-    const response = await api.get(`/produto/${id}/disponivel`);
     return response.data;
   },
 

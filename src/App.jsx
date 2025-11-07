@@ -31,7 +31,7 @@ function App() {
             />
             <Route path="/carrinho" element={<Carrinho />} />
             <Route path="/produtos" element={<Produtos />} />
-            <Route path="/produtos/show" element={<ProdutoDetalhes />} />
+            <Route path="/produtos/show/:id" element={<ProdutoDetalhes />} />
             {/* rotas de adm */}
             <Route path="/admin/produtos/novo" element={<ProdutoCreate />} />
             <Route path="/admin/produtos" element={<AdminProdutos />} />

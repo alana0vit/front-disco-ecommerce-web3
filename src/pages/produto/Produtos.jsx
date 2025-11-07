@@ -320,7 +320,7 @@ const Produtos = () => {
                     {/* Botões de Ação */}
                     <div className="flex space-x-2">
                       <Link
-                        to={`/produtos/${product.idProduto}`}
+                        to={`/produtos/show/${product.idProduto}`}
                         className="flex-1 bg-gray-900 hover:bg-gray-800 text-white py-2 px-4 rounded-lg text-center font-semibold transition-colors"
                       >
                         Ver Detalhes

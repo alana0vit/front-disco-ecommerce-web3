@@ -46,7 +46,7 @@ const Home = () => {
   // Buscar produtos em destaque
   const fetchFeaturedProducts = async () => {
     try {
-      const response = await api.get("/produto/disponiveis");
+      const response = await api.get("/produto");
       const produtosDisponiveis = response.data.filter(
         (produto) => produto.ativo && produto.estoque > 0
       );
@@ -196,8 +196,6 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header com integração do carrinho */}
-      <Header onAbrirCarrinho={handleAbrirCarrinho} />
 
       {/* Hero Section */}
       <HeroCarousel />
