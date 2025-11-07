@@ -34,4 +34,4 @@ https://github.com/alana0vit/back-disco-ecommerce-web3.git
 
 5.**Acesse a URL**
 
-```http://localhost:3000```
+```http://localhost:8000```
