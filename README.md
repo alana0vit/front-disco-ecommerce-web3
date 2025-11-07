@@ -16,17 +16,22 @@ https://github.com/alana0vit/back-disco-ecommerce-web3.git
 - **Tailwind**— Responsividade e aparência
 
 ## 🎯 Como rodar localmente  
-1. **Clone o repositório**  
+1. **Clone o repositório**
+  
    ```git clone https://github.com/alana0vit/front-disco-ecommerce-web3.git```
 
 2. **Entre na pasta**
+
 ```cd front-disco-ecommerce-web3```
 
 3.**Instale as dependências**
+
 ```npm install```
 
 4.**inicie o servidor de desenvolvimento**
+
 ```npm run dev```
 
 5.**Acesse a URL**
+
 ```http://localhost:3000```
