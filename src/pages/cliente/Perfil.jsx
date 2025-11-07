@@ -329,13 +329,6 @@ const Perfil = () => {
               <h3 className="text-lg font-semibold text-gray-900">
                 Meus Endereços
               </h3>
-              <Link
-                to="/perfil/enderecos/novo"
-                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium flex items-center transition-colors"
-              >
-                <PlusIcon className="h-5 w-5 mr-2" />
-                Novo Endereço
-              </Link>
             </div>
           </div>
 
