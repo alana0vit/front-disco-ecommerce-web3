@@ -1,8 +1,7 @@
 // src/components/Checkout.jsx
 import { useState } from "react";
 import { ArrowLeftIcon, CheckIcon } from "@heroicons/react/24/outline";
-import api from "../../services/Api";
-import carrinhoService from "../../services/Carrinho";
+import api from "../../services/Carrinho";
 
 const Checkout = ({ pedido, onBack, onSuccess }) => {
   const [metodoPagamento, setMetodoPagamento] = useState("Pix");

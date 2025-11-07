@@ -3,7 +3,6 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeftIcon,
-  PhotoIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
   XMarkIcon,

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { XMarkIcon, PlusIcon, MinusIcon } from "@heroicons/react/24/outline";
 import carrinhoService from "../../services/Carrinho";
-import api from "../../services/Api";
+import api from "../../services/Carrinho";
 
 const Carrinho = ({ isOpen, onClose, onCheckout }) => {
   const [carrinho, setCarrinho] = useState([]);

@@ -8,7 +8,6 @@ import {
   Bars3Icon,
   XMarkIcon,
   PlusIcon,
-  Cog6ToothIcon,
 } from "@heroicons/react/24/outline";
 import carrinhoService from "../services/Carrinho";
 import logo from "../assets/DISCOOL_logo.png";
@@ -30,6 +29,8 @@ const Header = () => {
     { name: "Cadastrar Produto", 
       href: "/admin/produtos/novo", 
       icon: PlusIcon },
+      { name: "Gerenciar Produtos", 
+      href: "/admin/produtos" },
   ];
 
   // Atualizar quantidade do carrinho
@@ -78,7 +79,7 @@ const Header = () => {
                 <Link
                   key={item.name}
                   to={item.href}
-                  className="hover:text-yellow-400 transition-colors duration-200 font-medium text-sm bg-gray-800 px-3 py-1 rounded"
+                  className="hover:text-purple-400 transition-colors duration-200 font-medium"
                   title="Área administrativa"
                 >
                   {item.name}

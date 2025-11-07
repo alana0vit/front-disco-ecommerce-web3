@@ -10,6 +10,8 @@ import Carrinho from "./pages/carrinho/Carrinho";
 import Produtos from "./pages/produto/Produtos";
 import ProdutoCreate from "./pages/produto/ProdutoCadastro";
 import ProdutoDetalhes from "./pages/produto/ProdutoDetalhes";
+import AdminProdutos from "./pages/produto/AdminProdutos";
+import AdminCategorias from "./pages/categoria/AdminCategoria";
 import CadastroEndereco from "./pages/cliente/Endereco";
 
 function App() {
@@ -32,7 +34,9 @@ function App() {
             <Route path="/produtos/show" element={<ProdutoDetalhes />} />
             {/* rotas de adm */}
             <Route path="/admin/produtos/novo" element={<ProdutoCreate />} />
-            {/* Adicione outras rotas aqui posteriormente */}
+            <Route path="/admin/produtos" element={<AdminProdutos />} />
+            <Route path="/admin/categorias" element={<AdminCategorias />} />
+
           </Routes>
         </main>
         <Footer />
