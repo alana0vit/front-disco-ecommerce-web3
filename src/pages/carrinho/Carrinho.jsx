@@ -40,13 +40,39 @@ const Carrinho = ({ isOpen, onClose, onCheckout }) => {
 
     setLoading(true);
     try {
-      // 1. Criar o pedido
+      // ✅ 1. VALIDAR ESTOQUE ANTES DE CRIAR PEDIDO (CRÍTICO)
+      const itensSemEstoque = carrinho.filter(
+        (item) => item.quantidade > item.produto.estoque
+      );
+
+      if (itensSemEstoque.length > 0) {
+        const nomesProdutos = itensSemEstoque
+          .map((item) => item.produto.nome)
+          .join(", ");
+        alert(`Estoque insuficiente para: ${nomesProdutos}`);
+        return;
+      }
+
+      // ✅ 2. VALIDAR SE PRODUTOS AINDA ESTÃO ATIVOS
+      const produtosInativos = carrinho.filter(
+        (item) => item.produto.ativo === false
+      );
+
+      if (produtosInativos.length > 0) {
+        const nomesProdutos = produtosInativos
+          .map((item) => item.produto.nome)
+          .join(", ");
+        alert(`Produtos indisponíveis: ${nomesProdutos}`);
+        return;
+      }
+
+      // ✅ 3. CRIAR PEDIDO (MANTENDO IDs FIXOS SEM LOGIN)
       const pedidoData = {
         valorTotal: carrinhoService.getTotal(),
         qtdTotal: carrinhoService.getQuantidadeTotal(),
         descricao: `Pedido com ${carrinho.length} itens`,
-        id_cliente_pdd: 1, // Isso virá do usuário logado
-        id_endereco_pdd: 1, // Endereço do usuário
+        id_cliente_pdd: 1, // ✅ Cliente padrão sem login
+        id_endereco_pdd: 1, // ✅ Endereço padrão sem login
         itemPedidos: carrinho.map((item) => ({
           quantidade: item.quantidade,
           valorUnitario: item.valorUnitario,
@@ -55,14 +81,27 @@ const Carrinho = ({ isOpen, onClose, onCheckout }) => {
         })),
       };
 
+      console.log("Enviando pedido:", pedidoData); // ✅ Debug
+
+      // ✅ 4. CRIAR PEDIDO NO BACKEND
       const pedidoResponse = await api.post("/pedido", pedidoData);
       const pedido = pedidoResponse.data;
 
-      // 2. Chamar o callback para ir para o checkout/pagamento
+      console.log("Pedido criado:", pedido); // ✅ Debug
+
+      // ✅ 5. IR PARA CHECKOUT
       onCheckout(pedido);
     } catch (error) {
       console.error("Erro ao finalizar pedido:", error);
-      alert("Erro ao finalizar pedido. Tente novamente.");
+
+      // ✅ MELHOR TRATAMENTO DE ERRO
+      if (error.response?.status === 400) {
+        alert("Dados inválidos. Verifique os itens do carrinho.");
+      } else if (error.response?.status === 404) {
+        alert("Algum produto não foi encontrado no sistema.");
+      } else {
+        alert("Erro ao finalizar pedido. Tente novamente.");
+      }
     } finally {
       setLoading(false);
     }

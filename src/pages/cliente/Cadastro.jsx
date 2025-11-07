@@ -71,6 +71,11 @@ const CadastroCliente = () => {
 
     if (!formData.telefone.trim()) {
       newErrors.telefone = "Telefone é obrigatório";
+    } else {
+      const phoneNumbers = formData.telefone.replace(/\D/g, "");
+      if (phoneNumbers.length < 10 || phoneNumbers.length > 11) {
+        newErrors.telefone = "Telefone deve ter 10 ou 11 dígitos";
+      }
     }
 
     if (!formData.dataNasc) {
@@ -128,8 +133,12 @@ const CadastroCliente = () => {
 
   // Formatar telefone enquanto digita
   const formatPhone = (value) => {
-    const numbers = value.replace(/\D/g, "");
+    const numbers = value.replace(/\D/g, "").slice(0, 11); // Limita a 11 dígitos
+
     if (numbers.length <= 11) {
+      if (numbers.length <= 10) {
+        return numbers.replace(/(\d{2})(\d{4})(\d{4})/, "($1) $2-$3");
+      }
       return numbers.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
     }
     return value;

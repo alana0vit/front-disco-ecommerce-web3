@@ -7,7 +7,6 @@ import {
   UserIcon,
   Bars3Icon,
   XMarkIcon,
-  PlusIcon,
 } from "@heroicons/react/24/outline";
 import carrinhoService from "../services/Carrinho";
 import logo from "../assets/DISCOOL_logo.png";
@@ -26,9 +25,6 @@ const Header = () => {
 
   // Navegação administrativa (para teste)
   const navigationAdmin = [
-    { name: "Cadastrar Produto", 
-      href: "/admin/produtos/novo", 
-      icon: PlusIcon },
       { name: "Gerenciar Produtos", 
       href: "/admin/produtos" },
   ];

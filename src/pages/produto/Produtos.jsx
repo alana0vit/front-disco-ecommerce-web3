@@ -7,6 +7,7 @@ import {
   ShoppingCartIcon,
 } from "@heroicons/react/24/outline";
 import { productService, categoryService } from "../../services/Produto";
+import carrinhoService from "../../services/Carrinho";
 
 const Produtos = () => {
   const [products, setProducts] = useState([]);
@@ -80,9 +81,21 @@ const Produtos = () => {
 
   // Adicionar ao carrinho
   const addToCart = (product) => {
-    console.log("Adicionado ao carrinho:", product);
-    // TODO: Implementar contexto do carrinho
-    alert(`${product.nome} adicionado ao carrinho!`);
+    if (product.estoque === 0) {
+      alert("Produto esgotado!");
+      return;
+    }
+
+    try {
+      carrinhoService.adicionarItem(product, 1);
+      alert(`${product.nome} adicionado ao carrinho!`);
+
+      // Opcional: atualizar algum estado global de carrinho se necessário
+      console.log("Carrinho atual:", carrinhoService.getCarrinhoFromStorage());
+    } catch (error) {
+      console.error("Erro ao adicionar ao carrinho:", error);
+      alert("Erro ao adicionar produto ao carrinho");
+    }
   };
 
   // Função para obter nome da categoria
