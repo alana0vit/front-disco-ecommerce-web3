@@ -302,6 +302,7 @@ const Produtos = () => {
                       alt={product.nome}
                       className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
                     />
+
                     {product.estoque === 0 && (
                       <div className="absolute top-4 right-4 bg-red-500 text-white px-2 py-1 rounded-full text-sm font-semibold">
                         Esgotado
