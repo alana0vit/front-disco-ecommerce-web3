@@ -1,4 +1,3 @@
-// src/pages/Home.jsx
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -12,19 +11,19 @@ import {
 
 import api from "../services/api";
 import HeroCarousel from "../components/Carrossel";
-import Header from "../components/Header";
-import Carrinho from "../pages/carrinho/Carrinho";
 import Checkout from "../pages/carrinho/Checkout";
+import { useCarrinho } from "../context/CartContext.jsx";
 
 const Home = () => {
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [carrinhoAberto, setCarrinhoAberto] = useState(false);
   const [checkoutPedido, setCheckoutPedido] = useState(null);
 
-  // Dados estáticos para features
+  const { adicionarProduto } = useCarrinho();
+
+  // Dados estáticos para seções de destaque
   const features = [
     {
       icon: <TruckIcon className="h-8 w-8 text-purple-500" />,
@@ -55,19 +54,16 @@ const Home = () => {
       const produtosFormatados = ultimosProdutos.map((produto) => ({
         id: produto.idProduto,
         name: produto.nome,
-        artist: produto.descricao || "Artista não informado",
-        price: parseFloat(produto.preco),
-        category: produto.categoria?.nome || "Sem categoria",
+        description: produto.descricao || "Artista não informado",
+        price: isNaN(parseFloat(produto.preco)) ? 0 : parseFloat(produto.preco),
+        category:
+          produto.categoria && produto.categoria.nome
+            ? produto.categoria.nome
+            : "Sem categoria",
         image:
-          produto.imagem ||
-          "https://images.unsplash.com/photo-1598387993441-6f2ccba83b5b?w=400&h=400&fit=crop",
+          produto.imagem ,
+        stock: produto.estoque,
         rating: 4,
-        // Dados completos para o carrinho
-        idProduto: produto.idProduto,
-        nome: produto.nome,
-        preco: parseFloat(produto.preco),
-        estoque: produto.estoque,
-        imagem: produto.imagem,
       }));
 
       setFeaturedProducts(produtosFormatados);
@@ -77,84 +73,55 @@ const Home = () => {
     }
   };
 
-  // Buscar categorias
-  const fetchCategories = async () => {
-    try {
-      const categoriasEstaticas = [
-        { name: "Rock", count: 0, image: "🎸" },
-        { name: "Jazz", count: 0, image: "🎷" },
-        { name: "MPB", count: 0, image: "🎵" },
-        { name: "Clássica", count: 0, image: "🎻" },
-        { name: "Eletrônica", count: 0, image: "🎹" },
-        { name: "Hip Hop", count: 0, image: "🎤" },
-      ];
+  // Buscar categorias (com contagem baseada nos produtos)
+  const fetchCategories = () => {
+    const categoriasEstaticas = [
+      { name: "Rock", count: 0, image: "🎸" },
+      { name: "Jazz", count: 0, image: "🎷" },
+      { name: "MPB", count: 0, image: "🎵" },
+      { name: "Clássica", count: 0, image: "🎻" },
+      { name: "Eletrônica", count: 0, image: "🎹" },
+      { name: "Hip Hop", count: 0, image: "🎤" },
+    ];
 
-      if (featuredProducts.length > 0) {
-        const categoriasComContagem = categoriasEstaticas.map((cat) => ({
-          ...cat,
-          count: featuredProducts.filter((prod) => prod.category === cat.name)
-            .length,
-        }));
-        setCategories(categoriasComContagem);
-      } else {
-        setCategories(categoriasEstaticas);
-      }
-    } catch (err) {
-      console.error("Erro ao buscar categorias:", err);
-      setCategories([
-        { name: "Rock", count: 156, image: "🎸" },
-        { name: "Jazz", count: 89, image: "🎷" },
-        { name: "MPB", count: 124, image: "🎵" },
-        { name: "Clássica", count: 67, image: "🎻" },
-        { name: "Eletrônica", count: 92, image: "🎹" },
-        { name: "Hip Hop", count: 78, image: "🎤" },
-      ]);
+    if (featuredProducts.length > 0) {
+      const categoriasComContagem = categoriasEstaticas.map((cat) => ({
+        ...cat,
+        count: featuredProducts.filter((prod) => prod.category === cat.name)
+          .length,
+      }));
+      setCategories(categoriasComContagem);
+    } else {
+      setCategories(categoriasEstaticas);
     }
   };
 
-  // Carregar dados
+  // Carregar produtos ao iniciar
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
       try {
         await fetchFeaturedProducts();
-      } catch (err) {
+      } catch {
         setError("Erro ao carregar dados da página inicial");
       } finally {
         setLoading(false);
       }
     };
-
     loadData();
   }, []);
 
-  // Atualizar categorias quando os produtos carregarem
+  // Atualizar categorias quando os produtos terminarem de carregar
   useEffect(() => {
-    if (featuredProducts.length > 0) {
-      fetchCategories();
-    }
-  }, [featuredProducts]);
-
-  // Funções do carrinho
-  const handleAbrirCarrinho = () => {
-    setCarrinhoAberto(true);
-  };
-
-  const handleFecharCarrinho = () => {
-    setCarrinhoAberto(false);
-  };
-
-  const handleIniciarCheckout = (pedido) => {
-    setCheckoutPedido(pedido);
-    setCarrinhoAberto(false);
-  };
+    if (!loading) fetchCategories();
+  }, [loading, featuredProducts]);
 
   const handleFinalizarCompra = () => {
     setCheckoutPedido(null);
     window.location.href = "/";
   };
 
-  // Se estiver no checkout, mostrar componente de checkout
+  // Exibe checkout se houver pedido
   if (checkoutPedido) {
     return (
       <Checkout
@@ -165,10 +132,13 @@ const Home = () => {
     );
   }
 
-  // Loading state
+  // Tela de carregamento
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div
+        className="min-h-screen bg-gray-50 flex items-center justify-center"
+        aria-live="polite"
+      >
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Carregando discos incríveis...</p>
@@ -177,7 +147,7 @@ const Home = () => {
     );
   }
 
-  // Error state
+  // Tela de erro
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -194,13 +164,13 @@ const Home = () => {
     );
   }
 
+  // Página principal
   return (
     <div className="min-h-screen bg-gray-50">
-
       {/* Hero Section */}
       <HeroCarousel />
 
-      {/* Resto do conteúdo da Home permanece igual */}
+      {/* Categorias */}
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -233,7 +203,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Destaques */}
+      {/* Produtos em Destaque */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center mb-12">
@@ -287,17 +257,13 @@ const Home = () => {
                     <h3 className="font-bold text-lg text-gray-900 mb-1">
                       {product.name}
                     </h3>
-                    <p className="text-gray-600 mb-3">{product.artist}</p>
+                    <p className="text-gray-600 mb-3">{product.description}</p>
                     <div className="flex justify-between items-center">
                       <span className="text-2xl font-bold text-purple-600">
-                        R$ {product.price.toFixed(2)}
+                        R$ {product.price?.toFixed(2) || "0.00"}
                       </span>
                       <button
-                        onClick={() => {
-                          // Aqui você precisará implementar a função adicionarAoCarrinho
-                          // ou integrar com o serviço do carrinho
-                          console.log("Adicionar produto:", product);
-                        }}
+                        onClick={() => adicionarProduto(product)}
                         className="bg-gray-900 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
                       >
                         Adicionar
