@@ -295,11 +295,7 @@ const Produtos = () => {
                   {/* Imagem do Produto */}
                   <div className="relative overflow-hidden">
                     <img
-                      src={
-                        product.imagem ||
-                        "https://images.unsplash.com/photo-1598387993441-6f2ccba83b5b?w=400&h=400&fit=crop"
-                      }
-                      alt={product.nome}
+                      src={product.imagemUrl} alt={product.nome}
                       className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
                     />
 

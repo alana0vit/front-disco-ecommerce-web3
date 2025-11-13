@@ -23,7 +23,7 @@ const ProdutoCadastro = () => {
     descricao: "",
     preco: "",
     estoque: "",
-    ativo: true,
+    ativo: 1,
     imagem: null, // Agora será um arquivo
     id_categoria_prod: "",
   });
@@ -191,7 +191,7 @@ const ProdutoCadastro = () => {
         descricao: "",
         preco: "",
         estoque: "",
-        ativo: true,
+        ativo: 1,
         imagem: null,
         id_categoria_prod: "",
       });
