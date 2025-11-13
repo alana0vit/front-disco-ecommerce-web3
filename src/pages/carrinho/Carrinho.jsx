@@ -1,215 +1,735 @@
-// src/components/Carrinho.jsx
+// src/pages/carrinho/Carrinho.jsx
 import { useState, useEffect } from "react";
-import { XMarkIcon, PlusIcon, MinusIcon } from "@heroicons/react/24/outline";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  TrashIcon,
+  PlusIcon,
+  MinusIcon,
+  ShoppingBagIcon,
+  ArrowLeftIcon,
+  TicketIcon,
+  UserIcon,
+  MapPinIcon,
+} from "@heroicons/react/24/outline";
+import { useCarrinho } from "../../context/CartContext";
 import carrinhoService from "../../services/Carrinho";
-import api from "../../services/Carrinho";
 
-const Carrinho = ({ isOpen, onClose, onCheckout }) => {
-  const [carrinho, setCarrinho] = useState([]);
+const Carrinho = () => {
+  const {
+    itens,
+    removerProduto,
+    atualizarQuantidade,
+    limparCarrinho,
+    getTotalItens,
+    getTotalPreco,
+  } = useCarrinho();
+
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [cupom, setCupom] = useState("");
+  const [desconto, setDesconto] = useState(0);
+  const [frete, setFrete] = useState(0);
+  const [opcoesFrete, setOpcoesFrete] = useState([]);
+  const [freteSelecionado, setFreteSelecionado] = useState("");
+  const [dadosCliente, setDadosCliente] = useState({
+    nome: "",
+    email: "",
+    telefone: "",
+  });
+  const [dadosEntrega, setDadosEntrega] = useState({
+    cep: "",
+    rua: "",
+    numero: "",
+    complemento: "",
+    bairro: "",
+    cidade: "",
+    estado: "",
+  });
+  const [etapa, setEtapa] = useState("carrinho"); // 'carrinho', 'dados', 'confirmacao'
+  const navigate = useNavigate();
 
+  // Calcular totais
+  const totalItens = getTotalItens();
+  const subtotal = getTotalPreco();
+  const total = subtotal + frete - desconto;
+
+  // Carregar opções de frete quando os itens mudarem
   useEffect(() => {
-    if (isOpen) {
-      setCarrinho(carrinhoService.getCarrinhoFromStorage());
+    if (itens.length > 0 && dadosEntrega.cep) {
+      carregarOpcoesFrete();
     }
-  }, [isOpen]);
+  }, [itens, dadosEntrega.cep]);
 
-  const atualizarQuantidade = (idProduto, novaQuantidade) => {
+  const carregarOpcoesFrete = async () => {
+    try {
+      const opcoes = await carrinhoService.calcularFrete(
+        dadosEntrega.cep,
+        itens
+      );
+      setOpcoesFrete(opcoes);
+
+      if (opcoes.length > 0) {
+        setFreteSelecionado(opcoes[1].id); // Padrão
+        setFrete(opcoes[1].valor);
+      }
+    } catch (err) {
+      console.error("Erro ao carregar opções de frete:", err);
+    }
+  };
+
+  const handleQuantidadeChange = async (produtoId, novaQuantidade) => {
     if (novaQuantidade < 1) return;
 
-    const item = carrinho.find((item) => item.produto.idProduto === idProduto);
-    if (item && novaQuantidade > item.produto.estoque) {
-      alert("Quantidade solicitada maior que o estoque disponível");
-      return;
+    try {
+      const item = itens.find((item) => item.id === produtoId);
+      const verificacaoEstoque = await carrinhoService.verificarEstoque([
+        { id: produtoId, quantidade: novaQuantidade },
+      ]);
+
+      if (!verificacaoEstoque[0].disponivel) {
+        setError(
+          `Estoque insuficiente para ${verificacaoEstoque[0].produto}. Disponível: ${verificacaoEstoque[0].estoqueDisponivel}`
+        );
+        return;
+      }
+
+      atualizarQuantidade(produtoId, novaQuantidade);
+      setError(null);
+    } catch (err) {
+      setError("Erro ao verificar estoque");
     }
-
-    const novoCarrinho = carrinhoService.atualizarQuantidade(
-      idProduto,
-      novaQuantidade
-    );
-    setCarrinho([...novoCarrinho]);
   };
 
-  const removerItem = (idProduto) => {
-    const novoCarrinho = carrinhoService.removerItem(idProduto);
-    setCarrinho([...novoCarrinho]);
+  const handleRemoverItem = (produtoId) => {
+    removerProduto(produtoId);
   };
 
-  const finalizarPedido = async () => {
-    if (carrinho.length === 0) return;
+  const handleAplicarCupom = async () => {
+    if (!cupom.trim()) return;
 
     setLoading(true);
     try {
-      // ✅ 1. VALIDAR ESTOQUE ANTES DE CRIAR PEDIDO (CRÍTICO)
-      const itensSemEstoque = carrinho.filter(
-        (item) => item.quantidade > item.produto.estoque
-      );
+      const cupomValido = await carrinhoService.validarCupom(cupom, subtotal);
 
-      if (itensSemEstoque.length > 0) {
-        const nomesProdutos = itensSemEstoque
-          .map((item) => item.produto.nome)
-          .join(", ");
-        alert(`Estoque insuficiente para: ${nomesProdutos}`);
-        return;
+      let valorDesconto = 0;
+      if (cupomValido.tipo === "percentual") {
+        valorDesconto = subtotal * (cupomValido.valor / 100);
+      } else if (cupomValido.tipo === "fixo") {
+        valorDesconto = cupomValido.valor;
+      } else if (cupomValido.tipo === "frete_gratis") {
+        setFrete(0);
+        valorDesconto = 0;
       }
 
-      // ✅ 2. VALIDAR SE PRODUTOS AINDA ESTÃO ATIVOS
-      const produtosInativos = carrinho.filter(
-        (item) => item.produto.ativo === false
-      );
-
-      if (produtosInativos.length > 0) {
-        const nomesProdutos = produtosInativos
-          .map((item) => item.produto.nome)
-          .join(", ");
-        alert(`Produtos indisponíveis: ${nomesProdutos}`);
-        return;
-      }
-
-      // ✅ 3. CRIAR PEDIDO (MANTENDO IDs FIXOS SEM LOGIN)
-      const pedidoData = {
-        valorTotal: carrinhoService.getTotal(),
-        qtdTotal: carrinhoService.getQuantidadeTotal(),
-        descricao: `Pedido com ${carrinho.length} itens`,
-        id_cliente_pdd: 1, // ✅ Cliente padrão sem login
-        id_endereco_pdd: 1, // ✅ Endereço padrão sem login
-        itemPedidos: carrinho.map((item) => ({
-          quantidade: item.quantidade,
-          valorUnitario: item.valorUnitario,
-          valorTotal: item.valorUnitario * item.quantidade,
-          id_produto_itpdd: item.produto.idProduto,
-        })),
-      };
-
-      console.log("Enviando pedido:", pedidoData); // ✅ Debug
-
-      // ✅ 4. CRIAR PEDIDO NO BACKEND
-      const pedidoResponse = await api.post("/pedido", pedidoData);
-      const pedido = pedidoResponse.data;
-
-      console.log("Pedido criado:", pedido); // ✅ Debug
-
-      // ✅ 5. IR PARA CHECKOUT
-      onCheckout(pedido);
-    } catch (error) {
-      console.error("Erro ao finalizar pedido:", error);
-
-      // ✅ MELHOR TRATAMENTO DE ERRO
-      if (error.response?.status === 400) {
-        alert("Dados inválidos. Verifique os itens do carrinho.");
-      } else if (error.response?.status === 404) {
-        alert("Algum produto não foi encontrado no sistema.");
-      } else {
-        alert("Erro ao finalizar pedido. Tente novamente.");
-      }
+      setDesconto(valorDesconto);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+      setDesconto(0);
     } finally {
       setLoading(false);
     }
   };
 
-  if (!isOpen) return null;
+  const handleFreteChange = (opcaoId) => {
+    setFreteSelecionado(opcaoId);
+    const opcaoSelecionada = opcoesFrete.find((opcao) => opcao.id === opcaoId);
+    if (opcaoSelecionada) {
+      setFrete(opcaoSelecionada.valor);
+    }
+  };
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
-      <div
-        className="absolute inset-0 bg-black bg-opacity-50"
-        onClick={onClose}
-      ></div>
+  const handleContinuarComprando = () => {
+    navigate("/produtos");
+  };
 
-      <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl">
-        <div className="flex flex-col h-full">
+  const handleAvancarParaDados = () => {
+    if (totalItens === 0) {
+      setError("Adicione produtos ao carrinho antes de continuar.");
+      return;
+    }
+    setEtapa("dados");
+  };
+
+  const handleVoltarParaCarrinho = () => {
+    setEtapa("carrinho");
+  };
+
+  const handleFinalizarPedido = async () => {
+    if (!dadosCliente.nome || !dadosCliente.email || !dadosEntrega.cep) {
+      setError("Preencha todos os dados obrigatórios.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Verificar estoque de todos os itens
+      const verificacaoEstoque = await carrinhoService.verificarEstoque(itens);
+      const itensSemEstoque = verificacaoEstoque.filter(
+        (item) => !item.disponivel
+      );
+
+      if (itensSemEstoque.length > 0) {
+        const produtosSemEstoque = itensSemEstoque
+          .map((item) => item.produto)
+          .join(", ");
+        setError(`Estoque insuficiente para: ${produtosSemEstoque}`);
+        setLoading(false);
+        return;
+      }
+
+      // Criar pedido no backend
+      const pedidoData = {
+        id_cliente: 1, // Cliente padrão (sem login)
+        id_endereco: 1, // Endereço padrão
+        item_pedidos: itens.map((item) => ({
+          id_produto_itpdd: item.id,
+          quantidade: item.quantidade,
+          valorUnitario: item.price,
+        })),
+      };
+
+      const pedidoCriado = await carrinhoService.criarPedido(pedidoData);
+
+      // Limpar carrinho após sucesso
+      limparCarrinho();
+
+      // Redirecionar para página de confirmação
+      navigate("/pedido-confirmado", {
+        state: {
+          pedido: pedidoCriado,
+          total: total,
+          dadosCliente: dadosCliente,
+        },
+      });
+    } catch (err) {
+      console.error("Erro ao criar pedido:", err);
+      setError(err.message || "Erro ao finalizar pedido. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Carrinho vazio
+  if (itens.length === 0 && etapa === "carrinho") {
+    return (
+      <div className="min-h-screen bg-gray-50 py-12">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <ShoppingBagIcon className="h-24 w-24 text-gray-400 mx-auto mb-6" />
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">
+              Seu carrinho está vazio
+            </h1>
+            <p className="text-lg text-gray-600 mb-8">
+              Que tal explorar nossa coleção de discos incríveis?
+            </p>
+            <div className="space-y-4 sm:space-y-0 sm:space-x-4 sm:flex sm:justify-center">
+              <button
+                onClick={handleContinuarComprando}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors duration-200"
+              >
+                Continuar Comprando
+              </button>
+              <Link
+                to="/"
+                className="inline-block bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-3 rounded-lg font-semibold transition-colors duration-200"
+              >
+                Voltar para Home
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Etapa de dados do cliente
+  if (etapa === "dados") {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b">
-            <h2 className="text-lg font-semibold">Meu Carrinho</h2>
-            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded">
-              <XMarkIcon className="h-5 w-5" />
+          <div className="mb-8">
+            <button
+              onClick={handleVoltarParaCarrinho}
+              className="flex items-center text-purple-600 hover:text-purple-700 mb-4"
+            >
+              <ArrowLeftIcon className="h-5 w-5 mr-2" />
+              Voltar para o Carrinho
             </button>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Finalizar Pedido
+            </h1>
+            <p className="text-gray-600 mt-2">
+              Preencha seus dados para continuar
+            </p>
           </div>
 
-          {/* Itens */}
-          <div className="flex-1 overflow-y-auto p-4">
-            {carrinho.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500">Seu carrinho está vazio</p>
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+              {error}
+            </div>
+          )}
+
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            {/* Dados Pessoais */}
+            <div className="mb-8">
+              <div className="flex items-center mb-4">
+                <UserIcon className="h-6 w-6 text-purple-600 mr-2" />
+                <h2 className="text-xl font-bold text-gray-900">
+                  Dados Pessoais
+                </h2>
               </div>
-            ) : (
-              carrinho.map((item) => (
-                <div
-                  key={item.produto.idProduto}
-                  className="flex items-center space-x-4 py-4 border-b"
-                >
-                  <img
-                    src={item.produto.imagem}
-                    alt={item.produto.nome}
-                    className="w-16 h-16 object-cover rounded"
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nome Completo *
+                  </label>
+                  <input
+                    type="text"
+                    value={dadosCliente.nome}
+                    onChange={(e) =>
+                      setDadosCliente({ ...dadosCliente, nome: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    required
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    E-mail *
+                  </label>
+                  <input
+                    type="email"
+                    value={dadosCliente.email}
+                    onChange={(e) =>
+                      setDadosCliente({
+                        ...dadosCliente,
+                        email: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Telefone
+                  </label>
+                  <input
+                    type="tel"
+                    value={dadosCliente.telefone}
+                    onChange={(e) =>
+                      setDadosCliente({
+                        ...dadosCliente,
+                        telefone: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  />
+                </div>
+              </div>
+            </div>
 
-                  <div className="flex-1">
-                    <h3 className="font-medium">{item.produto.nome}</h3>
-                    <p className="text-purple-600 font-semibold">
-                      R$ {item.valorUnitario.toFixed(2)}
-                    </p>
+            {/* Dados de Entrega */}
+            <div>
+              <div className="flex items-center mb-4">
+                <MapPinIcon className="h-6 w-6 text-purple-600 mr-2" />
+                <h2 className="text-xl font-bold text-gray-900">
+                  Endereço de Entrega
+                </h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    CEP *
+                  </label>
+                  <input
+                    type="text"
+                    value={dadosEntrega.cep}
+                    onChange={(e) =>
+                      setDadosEntrega({ ...dadosEntrega, cep: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    required
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Rua *
+                  </label>
+                  <input
+                    type="text"
+                    value={dadosEntrega.rua}
+                    onChange={(e) =>
+                      setDadosEntrega({ ...dadosEntrega, rua: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Número *
+                  </label>
+                  <input
+                    type="text"
+                    value={dadosEntrega.numero}
+                    onChange={(e) =>
+                      setDadosEntrega({
+                        ...dadosEntrega,
+                        numero: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Complemento
+                  </label>
+                  <input
+                    type="text"
+                    value={dadosEntrega.complemento}
+                    onChange={(e) =>
+                      setDadosEntrega({
+                        ...dadosEntrega,
+                        complemento: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Bairro *
+                  </label>
+                  <input
+                    type="text"
+                    value={dadosEntrega.bairro}
+                    onChange={(e) =>
+                      setDadosEntrega({
+                        ...dadosEntrega,
+                        bairro: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Cidade *
+                  </label>
+                  <input
+                    type="text"
+                    value={dadosEntrega.cidade}
+                    onChange={(e) =>
+                      setDadosEntrega({
+                        ...dadosEntrega,
+                        cidade: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Estado *
+                  </label>
+                  <input
+                    type="text"
+                    value={dadosEntrega.estado}
+                    onChange={(e) =>
+                      setDadosEntrega({
+                        ...dadosEntrega,
+                        estado: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
 
-                    <div className="flex items-center space-x-2 mt-2">
-                      <button
-                        onClick={() =>
-                          atualizarQuantidade(
-                            item.produto.idProduto,
-                            item.quantidade - 1
-                          )
-                        }
-                        className="p-1 rounded border"
-                      >
-                        <MinusIcon className="h-4 w-4" />
-                      </button>
+            {/* Botão Finalizar */}
+            <div className="mt-8">
+              <button
+                onClick={handleFinalizarPedido}
+                disabled={loading}
+                className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white py-3 px-4 rounded-lg font-semibold transition-colors duration-200 flex items-center justify-center"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    Processando...
+                  </>
+                ) : (
+                  "Finalizar Pedido"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-                      <span className="px-3 py-1 border rounded">
-                        {item.quantidade}
-                      </span>
+  // Etapa do carrinho (principal)
+  return (
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mb-8">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center text-purple-600 hover:text-purple-700 mb-4"
+          >
+            <ArrowLeftIcon className="h-5 w-5 mr-2" />
+            Voltar
+          </button>
+          <h1 className="text-3xl font-bold text-gray-900">Meu Carrinho</h1>
+          <p className="text-gray-600 mt-2">
+            {totalItens} {totalItens === 1 ? "item" : "itens"} no carrinho
+          </p>
+        </div>
 
-                      <button
-                        onClick={() =>
-                          atualizarQuantidade(
-                            item.produto.idProduto,
-                            item.quantidade + 1
-                          )
-                        }
-                        disabled={item.quantidade >= item.produto.estoque}
-                        className="p-1 rounded border disabled:opacity-50"
-                      >
-                        <PlusIcon className="h-4 w-4" />
-                      </button>
-                    </div>
+        {/* Mensagem de Erro */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+            {error}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Lista de Itens */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Cupom de Desconto */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center space-x-4">
+                <TicketIcon className="h-6 w-6 text-purple-600" />
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    placeholder="Código do cupom"
+                    value={cupom}
+                    onChange={(e) => setCupom(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  />
+                </div>
+                <button
+                  onClick={handleAplicarCupom}
+                  disabled={loading || !cupom.trim()}
+                  className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-lg font-semibold transition-colors duration-200"
+                >
+                  {loading ? "Aplicando..." : "Aplicar"}
+                </button>
+              </div>
+              {desconto > 0 && (
+                <p className="text-green-600 text-sm mt-2">
+                  Cupom aplicado! Desconto de R$ {desconto.toFixed(2)}
+                </p>
+              )}
+            </div>
+
+            {/* Lista de Produtos */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              {itens.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center p-6 border-b border-gray-100 last:border-b-0"
+                >
+                  {/* Imagem do Produto */}
+                  <div className="flex-shrink-0">
+                    <img
+                      src={item.image || "/api/placeholder/80/80"}
+                      alt={item.name}
+                      className="h-20 w-20 object-cover rounded-lg"
+                    />
                   </div>
 
-                  <button
-                    onClick={() => removerItem(item.produto.idProduto)}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded"
-                  >
-                    <XMarkIcon className="h-5 w-5" />
-                  </button>
+                  {/* Detalhes do Produto */}
+                  <div className="flex-1 ml-6">
+                    <h3 className="font-semibold text-gray-900 text-lg">
+                      {item.name}
+                    </h3>
+                    <p className="text-gray-600 text-sm mt-1">
+                      {item.description}
+                    </p>
+                    <p className="text-purple-600 font-bold text-lg mt-2">
+                      R$ {item.price?.toFixed(2)}
+                    </p>
+                  </div>
+
+                  {/* Controles de Quantidade */}
+                  <div className="flex items-center space-x-3">
+                    <button
+                      onClick={() =>
+                        handleQuantidadeChange(item.id, item.quantidade - 1)
+                      }
+                      disabled={item.quantidade <= 1}
+                      className="p-1 rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <MinusIcon className="h-4 w-4" />
+                    </button>
+
+                    <span className="w-12 text-center font-semibold">
+                      {item.quantidade}
+                    </span>
+
+                    <button
+                      onClick={() =>
+                        handleQuantidadeChange(item.id, item.quantidade + 1)
+                      }
+                      className="p-1 rounded-full hover:bg-gray-100"
+                    >
+                      <PlusIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  {/* Subtotal e Remover */}
+                  <div className="text-right ml-6">
+                    <p className="font-bold text-gray-900 text-lg">
+                      R$ {(item.price * item.quantidade).toFixed(2)}
+                    </p>
+                    <button
+                      onClick={() => handleRemoverItem(item.id)}
+                      className="text-red-500 hover:text-red-700 mt-2"
+                      title="Remover item"
+                    >
+                      <TrashIcon className="h-5 w-5" />
+                    </button>
+                  </div>
                 </div>
-              ))
-            )}
+              ))}
+            </div>
+
+            {/* Continuar Comprando */}
+            <div className="mt-6">
+              <button
+                onClick={handleContinuarComprando}
+                className="text-purple-600 hover:text-purple-700 font-semibold flex items-center"
+              >
+                <ArrowLeftIcon className="h-5 w-5 mr-2" />
+                Continuar Comprando
+              </button>
+            </div>
           </div>
 
-          {/* Footer */}
-          {carrinho.length > 0 && (
-            <div className="border-t p-4 space-y-4">
-              <div className="flex justify-between text-lg font-semibold">
-                <span>Total:</span>
-                <span>R$ {carrinhoService.getTotal().toFixed(2)}</span>
+          {/* Resumo do Pedido */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-8">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">
+                Resumo do Pedido
+              </h2>
+
+              <div className="space-y-3 mb-4">
+                <div className="flex justify-between text-gray-600">
+                  <span>Subtotal ({totalItens} itens)</span>
+                  <span>R$ {subtotal.toFixed(2)}</span>
+                </div>
+
+                {/* Opções de Frete */}
+                {dadosEntrega.cep && opcoesFrete.length > 0 && (
+                  <div className="border-t border-gray-200 pt-3">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Opções de Frete:
+                    </label>
+                    <div className="space-y-2">
+                      {opcoesFrete.map((opcao) => (
+                        <label
+                          key={opcao.id}
+                          className="flex items-center space-x-3 cursor-pointer"
+                        >
+                          <input
+                            type="radio"
+                            name="frete"
+                            value={opcao.id}
+                            checked={freteSelecionado === opcao.id}
+                            onChange={(e) => handleFreteChange(e.target.value)}
+                            className="text-purple-600 focus:ring-purple-500"
+                          />
+                          <div className="flex-1">
+                            <div className="flex justify-between">
+                              <span className="text-sm font-medium">
+                                {opcao.nome}
+                              </span>
+                              <span className="text-sm">
+                                {opcao.valor === 0
+                                  ? "Grátis"
+                                  : `R$ ${opcao.valor.toFixed(2)}`}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-500">
+                              {opcao.prazo}
+                            </p>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {!dadosEntrega.cep && (
+                  <div className="text-sm text-gray-500">
+                    Informe o CEP para calcular o frete
+                  </div>
+                )}
+
+                {desconto > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Desconto</span>
+                    <span>- R$ {desconto.toFixed(2)}</span>
+                  </div>
+                )}
+
+                <div className="border-t border-gray-200 pt-3">
+                  <div className="flex justify-between text-lg font-bold text-gray-900">
+                    <span>Total</span>
+                    <span>R$ {total.toFixed(2)}</span>
+                  </div>
+                </div>
               </div>
 
               <button
-                onClick={finalizarPedido}
-                disabled={loading}
-                className="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                onClick={handleAvancarParaDados}
+                disabled={totalItens === 0}
+                className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white py-3 px-4 rounded-lg font-semibold transition-colors duration-200"
               >
-                {loading ? "Processando..." : "Finalizar Pedido"}
+                Continuar para Pagamento
               </button>
+
+              {/* Benefícios */}
+              <div className="mt-6 space-y-3 text-sm text-gray-600">
+                <div className="flex items-center">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                  <span>Frete grátis para compras acima de R$ 150</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                  <span>Garantia Discool de 30 dias</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                  <span>Pagamento seguro</span>
+                </div>
+              </div>
             </div>
-          )}
+
+            {/* Limpar Carrinho */}
+            <button
+              onClick={limparCarrinho}
+              className="w-full mt-4 text-red-500 hover:text-red-700 font-semibold text-sm flex items-center justify-center"
+            >
+              <TrashIcon className="h-4 w-4 mr-2" />
+              Limpar Carrinho
+            </button>
+          </div>
         </div>
       </div>
     </div>

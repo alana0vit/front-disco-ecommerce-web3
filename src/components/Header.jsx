@@ -8,12 +8,13 @@ import {
   Bars3Icon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import carrinhoService from "../services/Carrinho";
+import { useCarrinho } from "../context/CartContext";
 import logo from "../assets/DISCOOL_logo.png";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [quantidadeCarrinho, setQuantidadeCarrinho] = useState(0);
+  const { getTotalItens } = useCarrinho();
+  const quantidadeCarrinho = getTotalItens();
 
   // Navegação principal (público)
   const navigationPublic = [
@@ -25,20 +26,8 @@ const Header = () => {
 
   // Navegação administrativa (para teste)
   const navigationAdmin = [
-      { name: "Gerenciar Produtos", 
-      href: "/admin/produtos" },
+    { name: "Gerenciar Produtos", href: "/admin/produtos" },
   ];
-
-  // Atualizar quantidade do carrinho
-  useEffect(() => {
-    const updateQuantidadeCarrinho = () => {
-      setQuantidadeCarrinho(carrinhoService.getQuantidadeTotal());
-    };
-
-    updateQuantidadeCarrinho();
-    const interval = setInterval(updateQuantidadeCarrinho, 500);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <header className="bg-gray-900 text-white sticky top-0 z-50 shadow-lg">

@@ -9,9 +9,8 @@ import {
   ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 
-import api from "../services/api";
+import api from "../services/Api";
 import HeroCarousel from "../components/Carrossel";
-import Checkout from "../pages/carrinho/Checkout";
 import { useCarrinho } from "../context/CartContext.jsx";
 
 const Home = () => {
@@ -60,8 +59,7 @@ const Home = () => {
           produto.categoria && produto.categoria.nome
             ? produto.categoria.nome
             : "Sem categoria",
-        image:
-          produto.imagem ,
+        image: produto.imagemUrl,
         stock: produto.estoque,
         rating: 4,
       }));
@@ -233,7 +231,7 @@ const Home = () => {
                 >
                   <div className="relative overflow-hidden">
                     <img
-                      src={product.image}
+                      src={product.imagemUrl}
                       alt={product.name}
                       className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
                     />

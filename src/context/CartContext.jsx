@@ -1,39 +1,140 @@
-import { createContext, useContext, useState } from "react";
+// src/context/CartContext.jsx (atualizado)
+import { createContext, useContext, useReducer, useEffect } from "react";
 
 const CartContext = createContext();
 
-export const CartProvider = ({ children }) => {
-  const [carrinho, setCarrinho] = useState([]);
+const cartReducer = (state, action) => {
+  switch (action.type) {
+    case "ADICIONAR_PRODUTO":
+      const existingItem = state.itens.find(
+        (item) => item.id === action.payload.id
+      );
 
-  const adicionarAoCarrinho = (produto) => {
-    setCarrinho((prev) => {
-      const existente = prev.find((item) => item.id === produto.id);
-      if (existente) {
-        return prev.map((item) =>
-          item.id === produto.id
-            ? { ...item, quantidade: item.quantidade + 1 }
-            : item
-        );
+      if (existingItem) {
+        return {
+          ...state,
+          itens: state.itens.map((item) =>
+            item.id === action.payload.id
+              ? { ...item, quantidade: item.quantidade + 1 }
+              : item
+          ),
+        };
       }
-      return [...prev, { ...produto, quantidade: 1 }];
+
+      return {
+        ...state,
+        itens: [...state.itens, { ...action.payload, quantidade: 1 }],
+      };
+
+    case "REMOVER_PRODUTO":
+      return {
+        ...state,
+        itens: state.itens.filter((item) => item.id !== action.payload),
+      };
+
+    case "ATUALIZAR_QUANTIDADE":
+      return {
+        ...state,
+        itens: state.itens.map((item) =>
+          item.id === action.payload.produtoId
+            ? { ...item, quantidade: action.payload.quantidade }
+            : item
+        ),
+      };
+
+    case "LIMPAR_CARRINHO":
+      return {
+        ...state,
+        itens: [],
+      };
+
+    case "CARREGAR_CARRINHO":
+      return {
+        ...state,
+        itens: action.payload,
+      };
+
+    default:
+      return state;
+  }
+};
+
+const initialState = {
+  itens: [],
+};
+
+export const CartProvider = ({ children }) => {
+  const [state, dispatch] = useReducer(cartReducer, initialState);
+
+  // Carregar carrinho do localStorage ao inicializar
+  useEffect(() => {
+    const carrinhoSalvo = localStorage.getItem("carrinho");
+    if (carrinhoSalvo) {
+      dispatch({
+        type: "CARREGAR_CARRINHO",
+        payload: JSON.parse(carrinhoSalvo),
+      });
+    }
+  }, []);
+
+  // Salvar carrinho no localStorage sempre que mudar
+  useEffect(() => {
+    localStorage.setItem("carrinho", JSON.stringify(state.itens));
+  }, [state.itens]);
+
+  const adicionarProduto = (produto) => {
+    dispatch({
+      type: "ADICIONAR_PRODUTO",
+      payload: produto,
     });
   };
 
-  const removerDoCarrinho = (id) => {
-    setCarrinho((prev) => prev.filter((item) => item.id !== id));
+  const removerProduto = (produtoId) => {
+    dispatch({
+      type: "REMOVER_PRODUTO",
+      payload: produtoId,
+    });
+  };
+
+  const atualizarQuantidade = (produtoId, quantidade) => {
+    dispatch({
+      type: "ATUALIZAR_QUANTIDADE",
+      payload: { produtoId, quantidade },
+    });
   };
 
   const limparCarrinho = () => {
-    setCarrinho([]);
+    dispatch({ type: "LIMPAR_CARRINHO" });
   };
 
-  return (
-    <CartContext.Provider
-      value={{ carrinho, adicionarAoCarrinho, removerDoCarrinho, limparCarrinho }}
-    >
-      {children}
-    </CartContext.Provider>
-  );
+  const getTotalItens = () => {
+    return state.itens.reduce((total, item) => total + item.quantidade, 0);
+  };
+
+  const getTotalPreco = () => {
+    return state.itens.reduce(
+      (total, item) => total + item.price * item.quantidade,
+      0
+    );
+  };
+
+  const value = {
+    itens: state.itens,
+    adicionarProduto,
+    removerProduto,
+    atualizarQuantidade,
+    limparCarrinho,
+    getTotalItens,
+    getTotalPreco,
+  };
+
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 };
 
-export const useCarrinho = () => useContext(CartContext);
+export const useCarrinho = () => {
+  const context = useContext(CartContext);
+  if (!context) {
+    throw new Error("useCarrinho deve ser usado dentro de um CartProvider");
+  }
+  return context;
+};

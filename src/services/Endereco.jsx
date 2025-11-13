@@ -1,5 +1,5 @@
 // src/services/EnderecoService.js
-import api from './api';
+import api from './Api';
 
 class EnderecoService {
   async criarEndereco(idCliente, enderecoData) {

@@ -1,5 +1,5 @@
 // src/services/CategoriaService.js
-import api from "./api";
+import api from "./Api";
 
 class CategoriaService {
   async criarCategoria(categoriaData) {

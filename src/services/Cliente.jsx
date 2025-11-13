@@ -1,6 +1,6 @@
 // src/services/api.js (adicionar estas funções)
 
-import api from "./api";
+import api from "./Api";
 
 export const clientService = {
   // Criar cliente - POST /cliente

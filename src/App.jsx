@@ -6,13 +6,13 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import CadastroCliente from "./pages/cliente/Cadastro";
 import Perfil from "./pages/cliente/Perfil";
-import Carrinho from "./pages/carrinho/Carrinho";
 import Produtos from "./pages/produto/Produtos";
 import ProdutoCreate from "./pages/produto/ProdutoCadastro";
 import ProdutoDetalhes from "./pages/produto/ProdutoDetalhes";
 import AdminProdutos from "./pages/produto/AdminProdutos";
 import AdminCategorias from "./pages/categoria/AdminCategoria";
 import CadastroEndereco from "./pages/cliente/Endereco";
+import Carrinho from "./pages/carrinho/Carrinho";
 
 function App() {
   return (
@@ -30,13 +30,13 @@ function App() {
               element={<CadastroEndereco />}
             />
             <Route path="/carrinho" element={<Carrinho />} />
+
             <Route path="/produtos" element={<Produtos />} />
             <Route path="/produtos/show/:id" element={<ProdutoDetalhes />} />
             {/* rotas de adm */}
             <Route path="/admin/produtos/novo" element={<ProdutoCreate />} />
             <Route path="/admin/produtos" element={<AdminProdutos />} />
             <Route path="/admin/categorias" element={<AdminCategorias />} />
-
           </Routes>
         </main>
         <Footer />
