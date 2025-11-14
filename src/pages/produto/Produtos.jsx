@@ -292,12 +292,21 @@ const Produtos = () => {
                   key={product.idProduto}
                   className="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group"
                 >
-                  {/* Imagem do Produto */}
+                  {/* Imagem do Produto - Agora clicável */}
                   <div className="relative overflow-hidden">
-                    <img
-                      src={product.imagemUrl} alt={product.nome}
-                      className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
+                    <Link
+                      to={`/produtos/show/${product.idProduto}`}
+                      className="block cursor-pointer"
+                    >
+                      <img
+                        src={product.imagemUrl}
+                        alt={product.nome}
+                        className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          e.target.src = "/api/placeholder/300/300";
+                        }}
+                      />
+                    </Link>
 
                     {product.estoque === 0 && (
                       <div className="absolute top-4 right-4 bg-red-500 text-white px-2 py-1 rounded-full text-sm font-semibold">
@@ -330,7 +339,7 @@ const Produtos = () => {
                     {/* Botões de Ação */}
                     <div className="flex space-x-2">
                       <Link
-                        to={`/produtos/show/${product.idProduto}`}
+                        to={`/produtos/${product.idProduto}`}
                         className="flex-1 bg-gray-900 hover:bg-gray-800 text-white py-2 px-4 rounded-lg text-center font-semibold transition-colors"
                       >
                         Ver Detalhes
