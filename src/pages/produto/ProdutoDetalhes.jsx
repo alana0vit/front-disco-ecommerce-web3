@@ -1,17 +1,19 @@
-// src/pages/ProductDetails.js
+// src/pages/ProdutoDetalhes.jsx
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeftIcon, ShoppingCartIcon } from "@heroicons/react/24/outline";
 import { productService } from "../../services/Produto";
-import carrinhoService from "../../services/Carrinho";
+import { useCarrinho } from "../../context/CartContext";
 
 const ProdutoDetalhes = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { adicionarProduto } = useCarrinho();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [quantity, setQuantity] = useState(1);
+  const [addedToCart, setAddedToCart] = useState(false);
 
   useEffect(() => {
     loadProduct();
@@ -35,14 +37,26 @@ const ProdutoDetalhes = () => {
     if (!product || product.estoque === 0 || !product.ativo) return;
 
     try {
-      carrinhoService.adicionarItem(product, quantity);
-      alert(`${quantity}x ${product.nome} adicionado ao carrinho!`);
+      // Formatar o produto para o formato esperado pelo contexto
+      const produtoFormatado = {
+        id: product.idProduto,
+        name: product.nome,
+        description: product.descricao || "Descrição não disponível",
+        price: parseFloat(product.preco),
+        image: product.imagemUrl,
+        stock: product.estoque,
+        category: product.categoria?.nome || "Sem categoria",
+      };
+
+      // Adicionar ao carrinho usando o contexto
+      adicionarProduto(produtoFormatado, quantity);
+
+      // Feedback visual
+      setAddedToCart(true);
+      setTimeout(() => setAddedToCart(false), 2000);
 
       // Resetar quantidade após adicionar
       setQuantity(1);
-
-      // Opcional: atualizar algum estado global de carrinho se necessário
-      console.log("Carrinho atual:", carrinhoService.getCarrinhoFromStorage());
     } catch (error) {
       console.error("Erro ao adicionar ao carrinho:", error);
       alert("Erro ao adicionar produto ao carrinho");
@@ -112,6 +126,9 @@ const ProdutoDetalhes = () => {
                 src={product.imagemUrl}
                 alt={product.nome}
                 className="w-full h-96 object-cover rounded-2xl"
+                onError={(e) => {
+                  e.target.src = "/api/placeholder/400/400";
+                }}
               />
             </div>
 
@@ -185,7 +202,7 @@ const ProdutoDetalhes = () => {
                       <div className="flex items-center space-x-2">
                         <button
                           onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                          className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center"
+                          className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors duration-200"
                         >
                           -
                         </button>
@@ -196,7 +213,7 @@ const ProdutoDetalhes = () => {
                           onClick={() =>
                             setQuantity(Math.min(product.estoque, quantity + 1))
                           }
-                          className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center"
+                          className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors duration-200"
                         >
                           +
                         </button>
@@ -208,10 +225,15 @@ const ProdutoDetalhes = () => {
 
                     <button
                       onClick={addToCart}
-                      className="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 px-6 rounded-lg font-semibold text-lg flex items-center justify-center transition-colors duration-200"
+                      disabled={addedToCart}
+                      className={`w-full py-4 px-6 rounded-lg font-semibold text-lg flex items-center justify-center transition-colors duration-200 ${
+                        addedToCart
+                          ? "bg-green-600 text-white"
+                          : "bg-purple-600 hover:bg-purple-700 text-white"
+                      }`}
                     >
                       <ShoppingCartIcon className="h-6 w-6 mr-2" />
-                      Adicionar ao Carrinho
+                      {addedToCart ? "Adicionado! ✓" : "Adicionar ao Carrinho"}
                     </button>
                   </div>
                 ) : (
