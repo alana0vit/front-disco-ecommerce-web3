@@ -282,7 +282,7 @@ const Home = () => {
                         Adicionar
                       </button>
                       <Link
-                        to={`/produtos/${product.id}`}
+                        to={`/produtos/show/${product.id}`}
                         className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors text-center block"
                       >
                         Ver Detalhes

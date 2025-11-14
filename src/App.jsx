@@ -14,10 +14,12 @@ import AdminCategorias from "./pages/categoria/AdminCategoria";
 import CategoriaCadastro from "./pages/categoria/CadastroCategoria";
 import CadastroEndereco from "./pages/cliente/Endereco";
 import Carrinho from "./pages/carrinho/Carrinho";
+import ScrollToTop from "./components/ScrollToTop";
 
 function App() {
   return (
     <Router>
+      <ScrollToTop />
       <div className="min-h-screen bg-gray-50 flex flex-col">
         <Header />
         <main className="grow">

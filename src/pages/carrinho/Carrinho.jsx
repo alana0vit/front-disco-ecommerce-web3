@@ -509,7 +509,7 @@ const Carrinho = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Lista de Itens */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Cupom de Desconto */}
+            {/* Cupom de Desconto 
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <div className="flex items-center space-x-4">
                 <TicketIcon className="h-6 w-6 text-purple-600" />
@@ -535,7 +535,7 @@ const Carrinho = () => {
                   Cupom aplicado! Desconto de R$ {desconto.toFixed(2)}
                 </p>
               )}
-            </div>
+            </div>*/}
 
             {/* Lista de Produtos */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200">
