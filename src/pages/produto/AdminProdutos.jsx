@@ -9,7 +9,7 @@ import {
   MagnifyingGlassIcon,
   FunnelIcon,
   ExclamationTriangleIcon,
-  TagIcon
+  TagIcon,
 } from "@heroicons/react/24/outline";
 import { productService, categoryService } from "../../services/Produto";
 
@@ -389,10 +389,7 @@ const AdminProdutos = () => {
                           <div className="h-10 w-10 flex-shrink-0">
                             <img
                               className="h-10 w-10 rounded-lg object-cover"
-                              src={
-                                product.imagem ||
-                                "https://images.unsplash.com/photo-1598387993441-6f2ccba83b5b?w=100&h=100&fit=crop"
-                              }
+                              src={product.imagemUrl}
                               alt={product.nome}
                             />
                           </div>

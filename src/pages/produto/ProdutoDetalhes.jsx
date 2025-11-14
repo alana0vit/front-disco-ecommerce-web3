@@ -5,7 +5,6 @@ import { ArrowLeftIcon, ShoppingCartIcon } from "@heroicons/react/24/outline";
 import { productService } from "../../services/Produto";
 import carrinhoService from "../../services/Carrinho";
 
-
 const ProdutoDetalhes = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -110,10 +109,7 @@ const ProdutoDetalhes = () => {
             {/* Imagem do Produto */}
             <div>
               <img
-                src={
-                  product.imagem ||
-                  "https://images.unsplash.com/photo-1598387993441-6f2ccba83b5b?w=600&h=600&fit=crop"
-                }
+                src={product.imagemUrl}
                 alt={product.nome}
                 className="w-full h-96 object-cover rounded-2xl"
               />
