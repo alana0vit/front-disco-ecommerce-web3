@@ -1,3 +1,4 @@
+// src/pages/Home.jsx
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -11,14 +12,14 @@ import {
 
 import api from "../services/Api";
 import HeroCarousel from "../components/Carrossel";
-import { useCarrinho } from "../context/CartContext.jsx";
+import { useCarrinho } from "../context/CartContext";
+import { productService } from "../services/Produto";
 
 const Home = () => {
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [checkoutPedido, setCheckoutPedido] = useState(null);
 
   const { adicionarProduto } = useCarrinho();
 
@@ -41,11 +42,11 @@ const Home = () => {
     },
   ];
 
-  // Buscar produtos em destaque
+  // Buscar produtos em destaque usando o service
   const fetchFeaturedProducts = async () => {
     try {
-      const response = await api.get("/produto");
-      const produtosDisponiveis = response.data.filter(
+      const produtos = await productService.getAllProducts();
+      const produtosDisponiveis = produtos.filter(
         (produto) => produto.ativo && produto.estoque > 0
       );
       const ultimosProdutos = produtosDisponiveis.slice(-4).reverse();
@@ -55,11 +56,8 @@ const Home = () => {
         name: produto.nome,
         description: produto.descricao || "Artista não informado",
         price: isNaN(parseFloat(produto.preco)) ? 0 : parseFloat(produto.preco),
-        category:
-          produto.categoria && produto.categoria.nome
-            ? produto.categoria.nome
-            : "Sem categoria",
-        image: produto.imagemUrl,
+        category: produto.categoria?.nome || "Sem categoria",
+        image: produto.imagemUrl || "/api/placeholder/300/300",
         stock: produto.estoque,
         rating: 4,
       }));
@@ -114,21 +112,20 @@ const Home = () => {
     if (!loading) fetchCategories();
   }, [loading, featuredProducts]);
 
-  const handleFinalizarCompra = () => {
-    setCheckoutPedido(null);
-    window.location.href = "/";
-  };
+  const handleAdicionarCarrinho = (product) => {
+    adicionarProduto(product);
 
-  // Exibe checkout se houver pedido
-  if (checkoutPedido) {
-    return (
-      <Checkout
-        pedido={checkoutPedido}
-        onBack={() => setCheckoutPedido(null)}
-        onSuccess={handleFinalizarCompra}
-      />
-    );
-  }
+    // Feedback visual (opcional - você pode adicionar um toast depois)
+    const button = document.querySelector(`[data-product-id="${product.id}"]`);
+    if (button) {
+      button.textContent = "Adicionado!";
+      button.classList.add("bg-green-600");
+      setTimeout(() => {
+        button.textContent = "Adicionar";
+        button.classList.remove("bg-green-600");
+      }, 1500);
+    }
+  };
 
   // Tela de carregamento
   if (loading) {
@@ -231,9 +228,12 @@ const Home = () => {
                 >
                   <div className="relative overflow-hidden">
                     <img
-                      src={product.imagemUrl}
+                      src={product.image}
                       alt={product.name}
                       className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
+                      onError={(e) => {
+                        e.target.src = "/api/placeholder/300/300";
+                      }}
                     />
                     <div className="absolute top-4 right-4 bg-purple-600 text-white px-2 py-1 rounded-full text-sm font-semibold">
                       {product.category}
@@ -252,16 +252,19 @@ const Home = () => {
                         />
                       ))}
                     </div>
-                    <h3 className="font-bold text-lg text-gray-900 mb-1">
+                    <h3 className="font-bold text-lg text-gray-900 mb-1 line-clamp-1">
                       {product.name}
                     </h3>
-                    <p className="text-gray-600 mb-3">{product.description}</p>
+                    <p className="text-gray-600 mb-3 line-clamp-2 h-10">
+                      {product.description}
+                    </p>
                     <div className="flex justify-between items-center">
                       <span className="text-2xl font-bold text-purple-600">
                         R$ {product.price?.toFixed(2) || "0.00"}
                       </span>
                       <button
-                        onClick={() => adicionarProduto(product)}
+                        data-product-id={product.id}
+                        onClick={() => handleAdicionarCarrinho(product)}
                         className="bg-gray-900 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
                       >
                         Adicionar
@@ -340,10 +343,10 @@ const Home = () => {
             discos dos sonhos na discool
           </p>
           <Link
-            to="/cadastro"
+            to="/produtos"
             className="bg-white text-purple-600 hover:bg-gray-100 px-8 py-4 rounded-lg font-semibold text-lg transition-colors duration-200 inline-block"
           >
-            Criar Minha Conta
+            Explorar Catálogo
           </Link>
         </div>
       </section>
