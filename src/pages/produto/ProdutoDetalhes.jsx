@@ -48,7 +48,7 @@ const ProdutoDetalhes = () => {
         category: product.categoria?.nome || "Sem categoria",
       };
 
-      // Adicionar ao carrinho usando o contexto
+      // Adicionar ao carrinho usando o contexto COM A QUANTIDADE
       adicionarProduto(produtoFormatado, quantity);
 
       // Feedback visual

@@ -113,9 +113,9 @@ const Home = () => {
   }, [loading, featuredProducts]);
 
   const handleAdicionarCarrinho = (product) => {
-    adicionarProduto(product);
+    adicionarProduto(product, 1); // Adiciona 1 unidade por padrão
 
-    // Feedback visual (opcional - você pode adicionar um toast depois)
+    // Feedback visual
     const button = document.querySelector(`[data-product-id="${product.id}"]`);
     if (button) {
       button.textContent = "Adicionado!";

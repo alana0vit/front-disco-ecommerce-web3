@@ -6,52 +6,56 @@ const CartContext = createContext();
 const cartReducer = (state, action) => {
   switch (action.type) {
     case "ADICIONAR_PRODUTO":
-      const existingItem = state.itens.find(
-        (item) => item.id === action.payload.id
-      );
-
+      const existingItem = state.itens.find(item => item.id === action.payload.produto.id);
+      
       if (existingItem) {
         return {
           ...state,
-          itens: state.itens.map((item) =>
-            item.id === action.payload.id
-              ? { ...item, quantidade: item.quantidade + 1 }
+          itens: state.itens.map(item =>
+            item.id === action.payload.produto.id
+              ? { 
+                  ...item, 
+                  quantidade: item.quantidade + action.payload.quantidade 
+                }
               : item
-          ),
+          )
         };
       }
-
+      
       return {
         ...state,
-        itens: [...state.itens, { ...action.payload, quantidade: 1 }],
+        itens: [...state.itens, { 
+          ...action.payload.produto, 
+          quantidade: action.payload.quantidade 
+        }]
       };
 
     case "REMOVER_PRODUTO":
       return {
         ...state,
-        itens: state.itens.filter((item) => item.id !== action.payload),
+        itens: state.itens.filter(item => item.id !== action.payload)
       };
 
     case "ATUALIZAR_QUANTIDADE":
       return {
         ...state,
-        itens: state.itens.map((item) =>
+        itens: state.itens.map(item =>
           item.id === action.payload.produtoId
             ? { ...item, quantidade: action.payload.quantidade }
             : item
-        ),
+        )
       };
 
     case "LIMPAR_CARRINHO":
       return {
         ...state,
-        itens: [],
+        itens: []
       };
 
     case "CARREGAR_CARRINHO":
       return {
         ...state,
-        itens: action.payload,
+        itens: action.payload
       };
 
     default:
@@ -60,7 +64,7 @@ const cartReducer = (state, action) => {
 };
 
 const initialState = {
-  itens: [],
+  itens: []
 };
 
 export const CartProvider = ({ children }) => {
@@ -72,7 +76,7 @@ export const CartProvider = ({ children }) => {
     if (carrinhoSalvo) {
       dispatch({
         type: "CARREGAR_CARRINHO",
-        payload: JSON.parse(carrinhoSalvo),
+        payload: JSON.parse(carrinhoSalvo)
       });
     }
   }, []);
@@ -82,24 +86,24 @@ export const CartProvider = ({ children }) => {
     localStorage.setItem("carrinho", JSON.stringify(state.itens));
   }, [state.itens]);
 
-  const adicionarProduto = (produto) => {
+  const adicionarProduto = (produto, quantidade = 1) => {
     dispatch({
       type: "ADICIONAR_PRODUTO",
-      payload: produto,
+      payload: { produto, quantidade }
     });
   };
 
   const removerProduto = (produtoId) => {
     dispatch({
       type: "REMOVER_PRODUTO",
-      payload: produtoId,
+      payload: produtoId
     });
   };
 
   const atualizarQuantidade = (produtoId, quantidade) => {
     dispatch({
       type: "ATUALIZAR_QUANTIDADE",
-      payload: { produtoId, quantidade },
+      payload: { produtoId, quantidade }
     });
   };
 
@@ -112,10 +116,7 @@ export const CartProvider = ({ children }) => {
   };
 
   const getTotalPreco = () => {
-    return state.itens.reduce(
-      (total, item) => total + item.price * item.quantidade,
-      0
-    );
+    return state.itens.reduce((total, item) => total + (item.price * item.quantidade), 0);
   };
 
   const value = {
@@ -125,10 +126,14 @@ export const CartProvider = ({ children }) => {
     atualizarQuantidade,
     limparCarrinho,
     getTotalItens,
-    getTotalPreco,
+    getTotalPreco
   };
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  return (
+    <CartContext.Provider value={value}>
+      {children}
+    </CartContext.Provider>
+  );
 };
 
 export const useCarrinho = () => {
