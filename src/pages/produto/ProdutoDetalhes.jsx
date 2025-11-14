@@ -33,8 +33,64 @@ const ProdutoDetalhes = () => {
     }
   };
 
+  const handleQuantityChange = (e) => {
+    const value = e.target.value;
+
+    // Permite campo vazio temporariamente
+    if (value === "") {
+      setQuantity("");
+      return;
+    }
+
+    const numValue = parseInt(value, 10);
+
+    // Verifica se é um número válido
+    if (isNaN(numValue) || numValue < 1) {
+      return;
+    }
+
+    // Limita pela quantidade em estoque
+    const maxQuantity = product ? product.estoque : 1;
+    const finalQuantity = Math.min(numValue, maxQuantity);
+
+    setQuantity(finalQuantity);
+  };
+
+  const handleQuantityBlur = () => {
+    // Se o campo ficou vazio, volta para 1
+    if (quantity === "") {
+      setQuantity(1);
+      return;
+    }
+
+    // Garante que seja pelo menos 1
+    const numValue = parseInt(quantity, 10);
+    if (isNaN(numValue) || numValue < 1) {
+      setQuantity(1);
+    }
+  };
+
+  const incrementQuantity = () => {
+    if (!product) return;
+    const newQuantity = Math.min(product.estoque, quantity + 1);
+    setQuantity(newQuantity);
+  };
+
+  const decrementQuantity = () => {
+    const newQuantity = Math.max(1, quantity - 1);
+    setQuantity(newQuantity);
+  };
+
   const addToCart = () => {
     if (!product || product.estoque === 0 || !product.ativo) return;
+
+    // Garante que a quantidade seja um número válido
+    const finalQuantity = typeof quantity === "number" ? quantity : 1;
+
+    if (finalQuantity < 1) {
+      alert("Quantidade deve ser pelo menos 1");
+      return;
+    }
 
     try {
       // Formatar o produto para o formato esperado pelo contexto
@@ -49,7 +105,7 @@ const ProdutoDetalhes = () => {
       };
 
       // Adicionar ao carrinho usando o contexto COM A QUANTIDADE
-      adicionarProduto(produtoFormatado, quantity);
+      adicionarProduto(produtoFormatado, finalQuantity);
 
       // Feedback visual
       setAddedToCart(true);
@@ -194,35 +250,64 @@ const ProdutoDetalhes = () => {
               {/* Ações */}
               <div className="border-t border-gray-200 pt-6">
                 {product.estoque > 0 && product.ativo ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-4">
-                      <label className="text-sm font-medium text-gray-700">
-                        Quantidade:
-                      </label>
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                          className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors duration-200"
-                        >
-                          -
-                        </button>
-                        <span className="w-8 text-center font-semibold">
-                          {quantity}
+                  <div className="space-y-6">
+                    {/* Controle de Quantidade */}
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <label className="text-sm font-medium text-gray-700">
+                          Quantidade:
+                        </label>
+                        <span className="text-xs text-gray-500">
+                          Máximo: {product.estoque} unidades
                         </span>
-                        <button
-                          onClick={() =>
-                            setQuantity(Math.min(product.estoque, quantity + 1))
-                          }
-                          className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors duration-200"
-                        >
-                          +
-                        </button>
                       </div>
-                      <span className="text-sm text-gray-500">
-                        Máximo: {product.estoque}
-                      </span>
-                    </div>
 
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <button
+                            onClick={decrementQuantity}
+                            disabled={quantity <= 1}
+                            className="w-12 h-12 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-200 flex items-center justify-center transition-all duration-200 shadow-sm"
+                          >
+                            <span className="text-lg font-semibold">−</span>
+                          </button>
+
+                          <div className="relative">
+                            <input
+                              type="number"
+                              min="1"
+                              max={product.estoque}
+                              value={quantity}
+                              onChange={handleQuantityChange}
+                              onBlur={handleQuantityBlur}
+                              className="w-20 h-12 text-center border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 font-semibold text-lg bg-white shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
+                          </div>
+
+                          <button
+                            onClick={incrementQuantity}
+                            disabled={quantity >= product.estoque}
+                            className="w-12 h-12 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-200 flex items-center justify-center transition-all duration-200 shadow-sm"
+                          >
+                            <span className="text-lg font-semibold">+</span>
+                          </button>
+                        </div>
+
+                        <div className="text-right">
+                          <div className="text-sm text-gray-600 mb-1">
+                            Subtotal:
+                          </div>
+                          <div className="text-xl font-bold text-purple-600">
+                            R${" "}
+                            {(
+                              parseFloat(product.preco) *
+                              (typeof quantity === "number" ? quantity : 1)
+                            ).toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Botão Adicionar ao Carrinho */}
                     <button
                       onClick={addToCart}
                       disabled={addedToCart}
@@ -233,7 +318,9 @@ const ProdutoDetalhes = () => {
                       }`}
                     >
                       <ShoppingCartIcon className="h-6 w-6 mr-2" />
-                      {addedToCart ? "Adicionado! ✓" : "Adicionar ao Carrinho"}
+                      {addedToCart
+                        ? `Adicionado ${quantity} unidade(s)! ✓`
+                        : `Adicionar ${quantity} unidade(s) ao Carrinho`}
                     </button>
                   </div>
                 ) : (
