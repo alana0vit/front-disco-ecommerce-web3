@@ -227,14 +227,20 @@ const Home = () => {
                   className="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group"
                 >
                   <div className="relative overflow-hidden">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
-                      onError={(e) => {
-                        e.target.src = "/api/placeholder/300/300";
-                      }}
-                    />
+                    {/* Imagem clicável */}
+                    <Link
+                      to={`/produtos/show/${product.id}`}
+                      className="block cursor-pointer"
+                    >
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          e.target.src = "/api/placeholder/300/300";
+                        }}
+                      />
+                    </Link>
                     <div className="absolute top-4 right-4 bg-purple-600 text-white px-2 py-1 rounded-full text-sm font-semibold">
                       {product.category}
                     </div>
@@ -258,17 +264,29 @@ const Home = () => {
                     <p className="text-gray-600 mb-3 line-clamp-2 h-10">
                       {product.description}
                     </p>
-                    <div className="flex justify-between items-center">
+
+                    {/* Preço */}
+                    <div className="mb-4">
                       <span className="text-2xl font-bold text-purple-600">
                         R$ {product.price?.toFixed(2) || "0.00"}
                       </span>
+                    </div>
+
+                    {/* Botões */}
+                    <div className="flex space-x-2">
                       <button
                         data-product-id={product.id}
                         onClick={() => handleAdicionarCarrinho(product)}
-                        className="bg-gray-900 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+                        className="flex-1 bg-gray-900 hover:bg-purple-700 text-white py-2 px-3 rounded-lg transition-colors duration-200 text-sm font-semibold"
                       >
                         Adicionar
                       </button>
+                      <Link
+                        to={`/produtos/${product.id}`}
+                        className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors text-center block"
+                      >
+                        Ver Detalhes
+                      </Link>
                     </div>
                   </div>
                 </div>
