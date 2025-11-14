@@ -1,4 +1,4 @@
-// src/pages/Products.js
+// src/pages/produto/Products.js
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {

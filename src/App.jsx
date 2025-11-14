@@ -10,6 +10,7 @@ import Produtos from "./pages/produto/Produtos";
 import ProdutoCreate from "./pages/produto/ProdutoCadastro";
 import ProdutoDetalhes from "./pages/produto/ProdutoDetalhes";
 import AdminProdutos from "./pages/produto/AdminProdutos";
+import ProdutoEdicao from "./pages/produto/ProdutoEdicao";
 import AdminCategorias from "./pages/categoria/AdminCategoria";
 import CategoriaCadastro from "./pages/categoria/CadastroCategoria";
 import CadastroEndereco from "./pages/cliente/Endereco";
@@ -43,6 +44,10 @@ function App() {
             <Route
               path="/admin/categorias/nova"
               element={<CategoriaCadastro />}
+            />
+            <Route
+              path="/admin/produtos/editar/:id"
+              element={<ProdutoEdicao />}
             />
           </Routes>
         </main>
