@@ -11,6 +11,7 @@ import ProdutoCreate from "./pages/produto/ProdutoCadastro";
 import ProdutoDetalhes from "./pages/produto/ProdutoDetalhes";
 import AdminProdutos from "./pages/produto/AdminProdutos";
 import AdminCategorias from "./pages/categoria/AdminCategoria";
+import CategoriaCadastro from "./pages/categoria/CadastroCategoria";
 import CadastroEndereco from "./pages/cliente/Endereco";
 import Carrinho from "./pages/carrinho/Carrinho";
 
@@ -37,6 +38,10 @@ function App() {
             <Route path="/admin/produtos/novo" element={<ProdutoCreate />} />
             <Route path="/admin/produtos" element={<AdminProdutos />} />
             <Route path="/admin/categorias" element={<AdminCategorias />} />
+            <Route
+              path="/admin/categorias/nova"
+              element={<CategoriaCadastro />}
+            />
           </Routes>
         </main>
         <Footer />
