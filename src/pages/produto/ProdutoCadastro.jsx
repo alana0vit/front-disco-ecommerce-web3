@@ -23,8 +23,8 @@ const ProdutoCadastro = () => {
     descricao: "",
     preco: "",
     estoque: "",
-    ativo: 1,
-    imagem: null, // Agora será um arquivo
+    ativo: true,
+    imagem: null,
     id_categoria_prod: "",
   });
 
@@ -167,7 +167,7 @@ const ProdutoCadastro = () => {
       formDataToSend.append("descricao", formData.descricao);
       formDataToSend.append("preco", parseFloat(formData.preco));
       formDataToSend.append("estoque", parseInt(formData.estoque));
-      formDataToSend.append("ativo", formData.ativo);
+      formDataToSend.append("ativo", formData.ativo ? 1 : 0);
       formDataToSend.append(
         "id_categoria_prod",
         parseInt(formData.id_categoria_prod)
@@ -191,7 +191,7 @@ const ProdutoCadastro = () => {
         descricao: "",
         preco: "",
         estoque: "",
-        ativo: 1,
+        ativo: true,
         imagem: null,
         id_categoria_prod: "",
       });

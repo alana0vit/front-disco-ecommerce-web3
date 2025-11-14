@@ -11,7 +11,11 @@ import {
   ExclamationTriangleIcon,
   TagIcon,
 } from "@heroicons/react/24/outline";
-import { productService, categoryService } from "../../services/Produto";
+import {
+  productService,
+  categoryService,
+  debugProducts,
+} from "../../services/Produto";
 
 const AdminProdutos = () => {
   const [products, setProducts] = useState([]);
@@ -37,11 +41,17 @@ const AdminProdutos = () => {
     loadCategories();
   }, []);
 
+  // No AdminProdutos.jsx, dentro do loadProducts, adicione:
   const loadProducts = async () => {
     try {
       setLoading(true);
       setError(null);
       const data = await productService.getAllProducts();
+
+      // DEBUG: Verificar estrutura dos produtos
+      console.log("=== ADMIN PRODUTOS DEBUG ===");
+      debugProducts(data); // Use a função de debug do serviço
+
       setProducts(data);
     } catch (err) {
       setError("Erro ao carregar produtos");
@@ -60,28 +70,44 @@ const AdminProdutos = () => {
     }
   };
 
-  // Aplicar filtros localmente
+  // Aplicar filtros localmente - CORRIGIDO
   const filteredProducts = products.filter((product) => {
+    // Filtro por nome
     if (
       filters.nome &&
       !product.nome.toLowerCase().includes(filters.nome.toLowerCase())
     ) {
       return false;
     }
-    if (
-      filters.categoria &&
-      product.categoria?.idCategoria !== parseInt(filters.categoria)
-    ) {
-      return false;
+
+    // Filtro por categoria - CORRIGIDO
+    if (filters.categoria) {
+      const categoriaId =
+        product.categoria?.idCategoria || product.id_categoria_prod;
+      if (categoriaId !== parseInt(filters.categoria)) {
+        return false;
+      }
     }
+
+    // Filtro por status - CORRIGIDO
     if (filters.status === "ativo" && !product.ativo) {
       return false;
     }
     if (filters.status === "inativo" && product.ativo) {
       return false;
     }
+
     return true;
   });
+
+  // Contadores para estatísticas - CORRIGIDOS
+  const totalProducts = products.length;
+  const activeProducts = products.filter(
+    (p) => p.ativo === true || p.ativo === 1
+  ).length;
+  const inactiveProducts = products.filter(
+    (p) => p.ativo === false || p.ativo === 0
+  ).length;
 
   // Limpar filtros
   const clearFilters = () => {
@@ -120,12 +146,29 @@ const AdminProdutos = () => {
     }
   };
 
-  // Função para obter nome da categoria
+  // Função para obter nome da categoria - CORRIGIDA
   const getCategoryName = (category) => {
     if (typeof category === "object" && category.nome) {
       return category.nome;
     }
+
+    // Se não tiver categoria no objeto, buscar pelo ID
+    if (category && categories.length > 0) {
+      const categoria = categories.find((cat) => cat.idCategoria === category);
+      return categoria ? categoria.nome : "Sem categoria";
+    }
+
     return "Sem categoria";
+  };
+
+  // Função para obter o ID da categoria - NOVA
+  const getCategoryId = (product) => {
+    return product.categoria?.idCategoria || product.id_categoria_prod;
+  };
+
+  // Função para verificar status - CORRIGIDA
+  const getProductStatus = (product) => {
+    return product.ativo === true || product.ativo === 1;
   };
 
   // Função para formatar preço
@@ -265,7 +308,7 @@ const AdminProdutos = () => {
           )}
         </div>
 
-        {/* Estatísticas */}
+        {/* Estatísticas - CORRIGIDAS */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-2xl shadow-sm p-6">
             <div className="flex items-center">
@@ -277,7 +320,7 @@ const AdminProdutos = () => {
                   Total de Produtos
                 </p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {products.length}
+                  {totalProducts}
                 </p>
               </div>
             </div>
@@ -293,7 +336,7 @@ const AdminProdutos = () => {
                   Produtos Ativos
                 </p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {products.filter((p) => p.ativo).length}
+                  {activeProducts}
                 </p>
               </div>
             </div>
@@ -309,7 +352,7 @@ const AdminProdutos = () => {
                   Produtos Inativos
                 </p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {products.filter((p) => !p.ativo).length}
+                  {inactiveProducts}
                 </p>
               </div>
             </div>
@@ -382,88 +425,99 @@ const AdminProdutos = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredProducts.map((product) => (
-                    <tr key={product.idProduto} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="h-10 w-10 flex-shrink-0">
-                            <img
-                              className="h-10 w-10 rounded-lg object-cover"
-                              src={product.imagemUrl}
-                              alt={product.nome}
-                            />
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">
-                              {product.nome}
+                  {filteredProducts.map((product) => {
+                    const isActive = getProductStatus(product);
+                    const categoryId = getCategoryId(product);
+
+                    return (
+                      <tr key={product.idProduto} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="h-10 w-10 flex-shrink-0">
+                              <img
+                                className="h-10 w-10 rounded-lg object-cover"
+                                src={
+                                  product.imagemUrl || "/api/placeholder/40/40"
+                                }
+                                alt={product.nome}
+                                onError={(e) => {
+                                  e.target.src =
+                                    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='14' fill='%239ca3af'%3E📦%3C/text%3E%3C/svg%3E";
+                                }}
+                              />
                             </div>
-                            <div className="text-sm text-gray-500 line-clamp-1">
-                              {product.descricao || "Sem descrição"}
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900">
+                                {product.nome}
+                              </div>
+                              <div className="text-sm text-gray-500 line-clamp-1 max-w-xs">
+                                {product.descricao || "Sem descrição"}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {getCategoryName(product.categoria)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          {formatPrice(product.preco)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div
-                          className={`text-sm font-medium ${
-                            product.estoque > 10
-                              ? "text-green-600"
-                              : product.estoque > 0
-                              ? "text-yellow-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {product.estoque} unidades
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            product.ativo
-                              ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
-                          }`}
-                        >
-                          {product.ativo ? "Ativo" : "Inativo"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex space-x-2">
-                          <Link
-                            to={`/produtos/${product.idProduto}`}
-                            className="text-blue-600 hover:text-blue-900 p-1"
-                            title="Ver detalhes"
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {getCategoryName(product.categoria || categoryId)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {formatPrice(product.preco)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div
+                            className={`text-sm font-medium ${
+                              product.estoque > 10
+                                ? "text-green-600"
+                                : product.estoque > 0
+                                ? "text-yellow-600"
+                                : "text-red-600"
+                            }`}
                           >
-                            <EyeIcon className="h-4 w-4" />
-                          </Link>
-                          <Link
-                            to={`/admin/produtos/editar/${product.idProduto}`}
-                            className="text-yellow-600 hover:text-yellow-900 p-1"
-                            title="Editar produto"
+                            {product.estoque} unidades
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              isActive
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
+                            }`}
                           >
-                            <PencilIcon className="h-4 w-4" />
-                          </Link>
-                          <button
-                            onClick={() => confirmDelete(product)}
-                            className="text-red-600 hover:text-red-900 p-1"
-                            title="Excluir produto"
-                          >
-                            <TrashIcon className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            {isActive ? "Ativo" : "Inativo"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex space-x-2">
+                            <Link
+                              to={`/produtos/${product.idProduto}`}
+                              className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50 transition-colors"
+                              title="Ver detalhes"
+                            >
+                              <EyeIcon className="h-4 w-4" />
+                            </Link>
+                            <Link
+                              to={`/admin/produtos/editar/${product.idProduto}`}
+                              className="text-yellow-600 hover:text-yellow-900 p-1 rounded hover:bg-yellow-50 transition-colors"
+                              title="Editar produto"
+                            >
+                              <PencilIcon className="h-4 w-4" />
+                            </Link>
+                            <button
+                              onClick={() => confirmDelete(product)}
+                              className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50 transition-colors"
+                              title="Excluir produto"
+                            >
+                              <TrashIcon className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

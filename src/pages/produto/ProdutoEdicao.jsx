@@ -25,7 +25,7 @@ const ProdutoEdicao = () => {
     descricao: "",
     preco: "",
     estoque: "",
-    ativo: 1,
+    ativo: true,
     imagem: null,
     id_categoria_prod: "",
   });
@@ -43,30 +43,39 @@ const ProdutoEdicao = () => {
       setLoadingProduct(true);
       const [productData, categoriesData] = await Promise.all([
         productService.getProductById(id),
-        categoryService.getCategories()
+        categoryService.getCategories(),
       ]);
 
       setCategories(categoriesData);
-      
+
       // Preencher formulário com dados do produto
       setFormData({
         nome: productData.nome || "",
         descricao: productData.descricao || "",
         preco: productData.preco?.toString() || "",
         estoque: productData.estoque?.toString() || "",
-        ativo: productData.ativo ? 1 : 0,
-        imagem: null, // Não carregamos o arquivo, apenas a URL
-        id_categoria_prod: productData.categoria?.idCategoria?.toString() || "",
+        ativo: productData.ativo || false,
+        imagem: null,
+        id_categoria_prod:
+          productData.id_categoria_prod?.toString() ||
+          productData.categoria?.idCategoria?.toString() ||
+          "",
       });
 
       // Salvar dados originais para comparação
-      setOriginalData(productData);
+      setOriginalData({
+        ...productData,
+        ativo: productData.ativo || false,
+        id_categoria_prod:
+          productData.id_categoria_prod?.toString() ||
+          productData.categoria?.idCategoria?.toString() ||
+          "",
+      });
 
       // Configurar preview da imagem existente
       if (productData.imagemUrl) {
         setImagePreview(productData.imagemUrl);
       }
-
     } catch (err) {
       console.error("Error loading product:", err);
       setSubmitStatus({
@@ -82,7 +91,7 @@ const ProdutoEdicao = () => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? (checked ? 1 : 0) : value,
+      [name]: type === "checkbox" ? checked : value,
     }));
 
     // Limpar erro do campo quando usuário começar a digitar
@@ -197,7 +206,7 @@ const ProdutoEdicao = () => {
       formDataToSend.append("descricao", formData.descricao);
       formDataToSend.append("preco", parseFloat(formData.preco));
       formDataToSend.append("estoque", parseInt(formData.estoque));
-      formDataToSend.append("ativo", formData.ativo);
+      formDataToSend.append("ativo", formData.ativo ? 1 : 0);
       formDataToSend.append(
         "id_categoria_prod",
         parseInt(formData.id_categoria_prod)
@@ -219,7 +228,6 @@ const ProdutoEdicao = () => {
       setTimeout(() => {
         navigate("/produtos");
       }, 2000);
-
     } catch (err) {
       console.error("Error updating product:", err);
       setSubmitStatus({
@@ -240,8 +248,9 @@ const ProdutoEdicao = () => {
       formData.descricao !== (originalData.descricao || "") ||
       parseFloat(formData.preco) !== parseFloat(originalData.preco) ||
       parseInt(formData.estoque) !== parseInt(originalData.estoque) ||
-      formData.ativo !== (originalData.ativo ? 1 : 0) ||
-      formData.id_categoria_prod !== (originalData.categoria?.idCategoria?.toString() || "") ||
+      formData.ativo !== originalData.ativo ||
+      formData.id_categoria_prod !==
+        (originalData.id_categoria_prod?.toString() || "") ||
       formData.imagem !== null
     );
   };
@@ -406,7 +415,7 @@ const ProdutoEdicao = () => {
                       type="checkbox"
                       id="ativo"
                       name="ativo"
-                      checked={formData.ativo === 1}
+                      checked={formData.ativo}
                       onChange={handleChange}
                       className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
                     />
@@ -569,8 +578,8 @@ const ProdutoEdicao = () => {
                 {/* Informações */}
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <p className="text-sm text-blue-800">
-                    <strong>Dica:</strong> Deixe em branco para manter a imagem atual. 
-                    Use imagens quadradas (1:1) para melhor visualização. 
+                    <strong>Dica:</strong> Deixe em branco para manter a imagem
+                    atual. Use imagens quadradas (1:1) para melhor visualização.
                     Tamanho recomendado: 500x500 pixels.
                   </p>
                 </div>
