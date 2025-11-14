@@ -7,13 +7,14 @@ import {
   ShoppingCartIcon,
 } from "@heroicons/react/24/outline";
 import { productService, categoryService } from "../../services/Produto";
-import carrinhoService from "../../services/Carrinho";
+import { useCarrinho } from "../../context/CartContext";
 
 const Produtos = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { adicionarProduto } = useCarrinho();
 
   // Estados para filtros
   const [filters, setFilters] = useState({
@@ -87,14 +88,23 @@ const Produtos = () => {
     }
 
     try {
-      carrinhoService.adicionarItem(product, 1);
-      alert(`${product.nome} adicionado ao carrinho!`);
+      // Formatar o produto igual na Home
+      const produtoFormatado = {
+        id: product.idProduto,
+        name: product.nome,
+        description: product.descricao || "Descrição não disponível",
+        price: parseFloat(product.preco),
+        image: product.imagemUrl,
+        stock: product.estoque,
+        category: product.categoria?.nome || "Sem categoria",
+      };
 
-      // Opcional: atualizar algum estado global de carrinho se necessário
-      console.log("Carrinho atual:", carrinhoService.getCarrinhoFromStorage());
+      // Usar o context igual na Home e ProdutoDetalhes
+      adicionarProduto(produtoFormatado, 1);
+      //alert(`${product.nome} adicionado ao carrinho!`);
     } catch (error) {
       console.error("Erro ao adicionar ao carrinho:", error);
-      alert("Erro ao adicionar produto ao carrinho");
+      //alert("Erro ao adicionar produto ao carrinho");
     }
   };
 
@@ -339,7 +349,7 @@ const Produtos = () => {
                     {/* Botões de Ação */}
                     <div className="flex space-x-2">
                       <Link
-                        to={`/produtos/${product.idProduto}`}
+                        to={`/produtos/show/${product.idProduto}`}
                         className="flex-1 bg-gray-900 hover:bg-gray-800 text-white py-2 px-4 rounded-lg text-center font-semibold transition-colors"
                       >
                         Ver Detalhes
