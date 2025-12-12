@@ -1,5 +1,5 @@
-// src/pages/Register.js
-import { useState } from "react";
+// src/pages/cliente/Cadastro.jsx - CORRIGIDO
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   EnvelopeIcon,
@@ -11,7 +11,8 @@ import {
   CalendarIcon,
   MusicalNoteIcon,
 } from "@heroicons/react/24/outline";
-import { clientService } from "../../services/Cliente";
+import { authService } from "../../services/AuthService";
+import { useAuth } from "../../context/AuthContext";
 
 const CadastroCliente = () => {
   const [formData, setFormData] = useState({
@@ -27,6 +28,14 @@ const CadastroCliente = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const navigate = useNavigate();
+  const { user, login } = useAuth();
+
+  // Se já estiver logado, redirecionar
+  useEffect(() => {
+    if (user) {
+      navigate("/");
+    }
+  }, [user, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -83,7 +92,16 @@ const CadastroCliente = () => {
     } else {
       const birthDate = new Date(formData.dataNasc);
       const today = new Date();
-      const age = today.getFullYear() - birthDate.getFullYear();
+      let age = today.getFullYear() - birthDate.getFullYear();
+
+      // Verificação mais precisa
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (
+        monthDiff < 0 ||
+        (monthDiff === 0 && today.getDate() < birthDate.getDate())
+      ) {
+        age--;
+      }
 
       if (age < 18) {
         newErrors.dataNasc = "Você deve ter pelo menos 18 anos";
@@ -107,24 +125,43 @@ const CadastroCliente = () => {
       // Preparar dados para envio (remover confirmarSenha)
       const { confirmarSenha, ...clientData } = formData;
 
-      // Formatar data para o formato esperado pelo backend
+      // Formatar dados para o backend
       const formattedData = {
         ...clientData,
         dataNasc: new Date(clientData.dataNasc).toISOString().split("T")[0],
-        ativo: true, // Cliente ativo por padrão
+        role: "CLIENTE", // Definindo a role
       };
 
       console.log("Dados de cadastro:", formattedData);
-      await clientService.createClient(formattedData);
 
-      alert("Cadastro realizado com sucesso! Faça login para continuar.");
-      navigate("/");
+      // Criar cliente usando AuthService
+      const result = await authService.register(formattedData);
+
+      if (result.success) {
+        // Login automático após cadastro
+        try {
+          await login(formData.email, formData.senha);
+          alert("Cadastro realizado com sucesso! Você já está logado.");
+          navigate("/");
+        } catch (loginError) {
+          console.log(
+            "Cadastro feito, mas login automático falhou:",
+            loginError
+          );
+          alert("Cadastro realizado com sucesso! Faça login para continuar.");
+          navigate("/login");
+        }
+      } else {
+        throw new Error(result.message || "Erro no cadastro");
+      }
     } catch (err) {
       console.error("Error creating client:", err);
-      if (err.response?.status === 409) {
+      if (err.message?.includes("email") || err.message?.includes("Email")) {
         setErrors({ email: "Este e-mail já está cadastrado" });
       } else {
-        alert("Erro ao cadastrar. Tente novamente.");
+        setErrors({
+          form: err.message || "Erro ao cadastrar. Tente novamente.",
+        });
       }
     } finally {
       setIsLoading(false);
@@ -133,7 +170,9 @@ const CadastroCliente = () => {
 
   // Formatar telefone enquanto digita
   const formatPhone = (value) => {
-    const numbers = value.replace(/\D/g, "").slice(0, 11); // Limita a 11 dígitos
+    const numbers = value.replace(/\D/g, "").slice(0, 11);
+
+    if (!numbers) return "";
 
     if (numbers.length <= 11) {
       if (numbers.length <= 10) {
@@ -150,6 +189,10 @@ const CadastroCliente = () => {
       ...prev,
       telefone: formattedPhone,
     }));
+
+    if (errors.telefone) {
+      setErrors((prev) => ({ ...prev, telefone: "" }));
+    }
   };
 
   return (
@@ -166,16 +209,23 @@ const CadastroCliente = () => {
         <p className="mt-2 text-center text-sm text-gray-600">
           Já tem uma conta?{" "}
           <Link
-            to="/"
+            to="/login"
             className="font-medium text-purple-600 hover:text-purple-500"
           >
-            Voltar para o início
+            Faça login
           </Link>
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          {/* Erro geral do formulário */}
+          {errors.form && (
+            <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-600 text-center">{errors.form}</p>
+            </div>
+          )}
+
           <form className="space-y-6" onSubmit={handleSubmit}>
             {/* Nome Completo */}
             <div>
@@ -198,7 +248,9 @@ const CadastroCliente = () => {
                   value={formData.nome}
                   onChange={handleChange}
                   className={`block w-full rounded-lg border-0 py-3 pl-10 pr-4 text-gray-900 ring-1 ring-inset placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-purple-600 sm:text-sm sm:leading-6 ${
-                    errors.nome ? "ring-red-500" : "ring-gray-300"
+                    errors.nome
+                      ? "ring-red-500 focus:ring-red-500"
+                      : "ring-gray-300"
                   }`}
                   placeholder="Seu nome completo"
                 />
@@ -229,7 +281,9 @@ const CadastroCliente = () => {
                   value={formData.email}
                   onChange={handleChange}
                   className={`block w-full rounded-lg border-0 py-3 pl-10 pr-4 text-gray-900 ring-1 ring-inset placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-purple-600 sm:text-sm sm:leading-6 ${
-                    errors.email ? "ring-red-500" : "ring-gray-300"
+                    errors.email
+                      ? "ring-red-500 focus:ring-red-500"
+                      : "ring-gray-300"
                   }`}
                   placeholder="seu@email.com"
                 />
@@ -260,9 +314,12 @@ const CadastroCliente = () => {
                   value={formData.telefone}
                   onChange={handlePhoneChange}
                   className={`block w-full rounded-lg border-0 py-3 pl-10 pr-4 text-gray-900 ring-1 ring-inset placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-purple-600 sm:text-sm sm:leading-6 ${
-                    errors.telefone ? "ring-red-500" : "ring-gray-300"
+                    errors.telefone
+                      ? "ring-red-500 focus:ring-red-500"
+                      : "ring-gray-300"
                   }`}
                   placeholder="(11) 99999-9999"
+                  maxLength={15}
                 />
               </div>
               {errors.telefone && (
@@ -290,8 +347,11 @@ const CadastroCliente = () => {
                   value={formData.dataNasc}
                   onChange={handleChange}
                   className={`block w-full rounded-lg border-0 py-3 pl-10 pr-4 text-gray-900 ring-1 ring-inset placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-purple-600 sm:text-sm sm:leading-6 ${
-                    errors.dataNasc ? "ring-red-500" : "ring-gray-300"
+                    errors.dataNasc
+                      ? "ring-red-500 focus:ring-red-500"
+                      : "ring-gray-300"
                   }`}
+                  max={new Date().toISOString().split("T")[0]}
                 />
               </div>
               {errors.dataNasc && (
@@ -320,7 +380,9 @@ const CadastroCliente = () => {
                   value={formData.senha}
                   onChange={handleChange}
                   className={`block w-full rounded-lg border-0 py-3 pl-10 pr-10 text-gray-900 ring-1 ring-inset placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-purple-600 sm:text-sm sm:leading-6 ${
-                    errors.senha ? "ring-red-500" : "ring-gray-300"
+                    errors.senha
+                      ? "ring-red-500 focus:ring-red-500"
+                      : "ring-gray-300"
                   }`}
                   placeholder="Mínimo 6 caracteres"
                 />
@@ -330,9 +392,9 @@ const CadastroCliente = () => {
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" />
+                    <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
                   ) : (
-                    <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" />
+                    <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
                   )}
                 </button>
               </div>
@@ -362,7 +424,9 @@ const CadastroCliente = () => {
                   value={formData.confirmarSenha}
                   onChange={handleChange}
                   className={`block w-full rounded-lg border-0 py-3 pl-10 pr-10 text-gray-900 ring-1 ring-inset placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-purple-600 sm:text-sm sm:leading-6 ${
-                    errors.confirmarSenha ? "ring-red-500" : "ring-gray-300"
+                    errors.confirmarSenha
+                      ? "ring-red-500 focus:ring-red-500"
+                      : "ring-gray-300"
                   }`}
                   placeholder="Digite novamente sua senha"
                 />
@@ -372,9 +436,9 @@ const CadastroCliente = () => {
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
                   {showConfirmPassword ? (
-                    <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" />
+                    <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
                   ) : (
-                    <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" />
+                    <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
                   )}
                 </button>
               </div>
@@ -385,6 +449,7 @@ const CadastroCliente = () => {
               )}
             </div>
 
+            {/* Botão de cadastro */}
             <div>
               <button
                 type="submit"
@@ -392,11 +457,34 @@ const CadastroCliente = () => {
                 className="flex w-full justify-center rounded-lg bg-purple-600 py-3 px-4 text-sm font-semibold text-white shadow-sm hover:bg-purple-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
               >
                 {isLoading ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    Cadastrando...
+                  </>
                 ) : (
                   "Criar conta"
                 )}
               </button>
+            </div>
+
+            {/* Link para login */}
+            <div className="text-center text-sm">
+              <p className="text-gray-600">
+                Ao criar uma conta, você concorda com nossos{" "}
+                <Link
+                  to="/termos"
+                  className="text-purple-600 hover:text-purple-500 font-medium"
+                >
+                  Termos de Uso
+                </Link>{" "}
+                e{" "}
+                <Link
+                  to="/privacidade"
+                  className="text-purple-600 hover:text-purple-500 font-medium"
+                >
+                  Política de Privacidade
+                </Link>
+              </p>
             </div>
           </form>
         </div>

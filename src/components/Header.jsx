@@ -1,33 +1,61 @@
-// src/components/Header.jsx - VERSÃO CORRIGIDA
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+// src/components/Header.jsx - VERSÃO OTIMIZADA
+import React, { useState, useMemo } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
-  MagnifyingGlassIcon,
   ShoppingBagIcon,
   UserIcon,
   Bars3Icon,
   XMarkIcon,
+  ArrowLeftOnRectangleIcon,
+  ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
 import { useCarrinho } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
 import logo from "../assets/DISCOOL_logo.png";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { getTotalItens } = useCarrinho();
+  const { user, isAdmin, logout } = useAuth();
+  const navigate = useNavigate();
   const quantidadeCarrinho = getTotalItens();
 
-  // Navegação principal (público)
+  const handleLogout = () => {
+    logout();
+    setIsMenuOpen(false);
+    navigate("/");
+  };
+
+  // Navegação para usuários não logados
   const navigationPublic = [
     { name: "Início", href: "/" },
     { name: "Discos", href: "/produtos" },
-    { name: "Login", href: "/login" },
-    { name: "Cadastro", href: "/cadastro" },
   ];
 
-  // Navegação administrativa (para teste)
+  // Navegação para usuários logados
+  const navigationLoggedIn = [
+    { name: "Início", href: "/" },
+    { name: "Discos", href: "/produtos" },
+    { name: "Perfil", href: "/perfil" },
+    { name: "Carrinho", href: "/carrinho" },
+  ];
+
+  // Navegação administrativa
   const navigationAdmin = [
     { name: "Gerenciar Produtos", href: "/admin/produtos" },
+    { name: "Gerenciar Categorias", href: "/admin/categorias" },
   ];
+
+  // Verificar se o usuário é admin (agora isAdmin é sempre uma função)
+  const userIsAdmin = useMemo(() => {
+    try {
+      // Como definimos no AuthContext, isAdmin é sempre uma função
+      return isAdmin ? isAdmin() : false;
+    } catch (error) {
+      console.error("Erro ao verificar admin:", error);
+      return false;
+    }
+  }, [isAdmin]);
 
   return (
     <header className="bg-gray-900 text-white sticky top-0 z-50 shadow-lg">
@@ -46,68 +74,159 @@ const Header = () => {
 
             {/* Navigation - Desktop */}
             <nav className="hidden md:flex items-center space-x-8">
-              {navigationPublic.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className="hover:text-purple-400 transition-colors duration-200 font-medium"
-                >
-                  {item.name}
-                </Link>
-              ))}
+              {/* Mostra navegação baseada no estado de autenticação */}
+              {user ? (
+                <>
+                  {navigationLoggedIn.map((item) => (
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      className="hover:text-purple-400 transition-colors duration-200 font-medium"
+                    >
+                      {item.name}
+                    </Link>
+                  ))}
+                </>
+              ) : (
+                <>
+                  {navigationPublic.map((item) => (
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      className="hover:text-purple-400 transition-colors duration-200 font-medium"
+                    >
+                      {item.name}
+                    </Link>
+                  ))}
+                  <Link
+                    to="/login"
+                    className="hover:text-purple-400 transition-colors duration-200 font-medium"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    to="/cadastro"
+                    className="hover:text-purple-400 transition-colors duration-200 font-medium"
+                  >
+                    Cadastro
+                  </Link>
+                </>
+              )}
 
-              {/* Separador Admin */}
-              <span className="text-gray-500">|</span>
-
-              {/* Links Administrativos */}
-              {navigationAdmin.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className="hover:text-purple-400 transition-colors duration-200 font-medium"
-                  title="Área administrativa"
-                >
-                  {item.name}
-                </Link>
-              ))}
+              {/* Links Administrativos (apenas para admins) */}
+              {userIsAdmin && (
+                <>
+                  <span className="text-gray-500">|</span>
+                  <div className="flex items-center space-x-4">
+                    <ShieldCheckIcon className="h-4 w-4 text-yellow-400" />
+                    {navigationAdmin.map((item) => (
+                      <Link
+                        key={item.name}
+                        to={item.href}
+                        className="hover:text-yellow-400 transition-colors duration-200 font-medium text-sm"
+                        title="Área administrativa"
+                      >
+                        {item.name}
+                      </Link>
+                    ))}
+                  </div>
+                </>
+              )}
             </nav>
           </div>
 
-          {/* Lado DIREITO: Busca + Ações do usuário */}
+          {/* Lado DIREITO: Ações do usuário */}
           <div className="flex items-center space-x-4">
             {/* User Actions - Desktop */}
             <div className="hidden md:flex items-center space-x-2">
-              <Link
-                to="/perfil"
-                className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
-                title="Meu Perfil"
-              >
-                <UserIcon className="h-6 w-6" />
-              </Link>
-              <Link
-                to="/carrinho"
-                className="p-2 hover:bg-gray-800 rounded-lg transition-colors relative"
-                title="Carrinho de compras"
-              >
-                <ShoppingBagIcon className="h-6 w-6" />
-                {quantidadeCarrinho > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {quantidadeCarrinho}
-                  </span>
-                )}
-              </Link>
+              {user ? (
+                <>
+                  {/* Perfil do usuário logado */}
+                  <div className="flex items-center space-x-4">
+                    <div className="text-sm text-gray-300">
+                      Olá,{" "}
+                      <span className="font-medium">
+                        {user.nome?.split(" ")[0] ||
+                          user.name?.split(" ")[0] ||
+                          "Usuário"}
+                      </span>
+                    </div>
+                    {userIsAdmin && (
+                      <div className="px-2 py-1 bg-yellow-900/30 text-yellow-400 text-xs rounded-full border border-yellow-800">
+                        Admin
+                      </div>
+                    )}
+                    <Link
+                      to="/perfil"
+                      className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+                      title="Meu Perfil"
+                    >
+                      <UserIcon className="h-6 w-6" />
+                    </Link>
+                    <Link
+                      to="/carrinho"
+                      className="p-2 hover:bg-gray-800 rounded-lg transition-colors relative"
+                      title="Carrinho de compras"
+                    >
+                      <ShoppingBagIcon className="h-6 w-6" />
+                      {quantidadeCarrinho > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                          {quantidadeCarrinho > 99 ? "99+" : quantidadeCarrinho}
+                        </span>
+                      )}
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-300 hover:text-white"
+                      title="Sair"
+                    >
+                      <ArrowLeftOnRectangleIcon className="h-6 w-6" />
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Usuário não logado */}
+                  <Link
+                    to="/login"
+                    className="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+                  >
+                    Entrar
+                  </Link>
+                  <Link
+                    to="/cadastro"
+                    className="px-4 py-2 text-sm font-medium bg-purple-600 text-white hover:bg-purple-700 rounded-lg transition-colors"
+                  >
+                    Cadastrar
+                  </Link>
+                  <Link
+                    to="/carrinho"
+                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors relative"
+                    title="Carrinho de compras"
+                  >
+                    <ShoppingBagIcon className="h-6 w-6" />
+                    {quantidadeCarrinho > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                        {quantidadeCarrinho > 99 ? "99+" : quantidadeCarrinho}
+                      </span>
+                    )}
+                  </Link>
+                </>
+              )}
             </div>
 
             {/* Mobile menu button */}
             <div className="md:hidden flex items-center space-x-2">
-              <Link to="/carrinho" className="p-2 relative">
-                <ShoppingBagIcon className="h-6 w-6" />
-                {quantidadeCarrinho > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {quantidadeCarrinho}
-                  </span>
-                )}
-              </Link>
+              {user && (
+                <Link to="/carrinho" className="p-2 relative">
+                  <ShoppingBagIcon className="h-6 w-6" />
+                  {quantidadeCarrinho > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {quantidadeCarrinho > 99 ? "99+" : quantidadeCarrinho}
+                    </span>
+                  )}
+                </Link>
+              )}
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
@@ -122,70 +241,118 @@ const Header = () => {
           </div>
         </div>
 
-        {/* Search Bar - Mobile */}
-        <div className="md:hidden pb-4">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Buscar discos, artistas..."
-              className="w-full bg-gray-800 text-white px-4 py-2 rounded-lg border border-gray-700 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors"
-            />
-            <MagnifyingGlassIcon className="absolute right-3 top-2 h-5 w-5 text-gray-400" />
-          </div>
-        </div>
-
         {/* Mobile Menu */}
         {isMenuOpen && (
           <div className="md:hidden border-t border-gray-700 py-4">
-            {/* Navegação Pública */}
             <nav className="flex flex-col space-y-4">
-              {navigationPublic.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className="hover:text-purple-400 transition-colors duration-200 font-medium py-2"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {item.name}
-                </Link>
-              ))}
+              {user ? (
+                <>
+                  {/* Menu para usuário logado */}
+                  <div className="pb-4 border-b border-gray-700">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">
+                          {user.nome || user.name || "Usuário"}
+                        </p>
+                        <p className="text-sm text-gray-400">{user.email}</p>
+                      </div>
+                      {userIsAdmin && (
+                        <div className="px-2 py-1 bg-yellow-900/30 text-yellow-400 text-xs rounded-full">
+                          Admin
+                        </div>
+                      )}
+                    </div>
+                  </div>
 
-              {/* Separador Admin Mobile */}
-              <div className="border-t border-gray-600 pt-4">
-                <p className="text-sm text-gray-400 mb-2">Administração</p>
-                {navigationAdmin.map((item) => (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    className="hover:text-yellow-400 transition-colors duration-200 font-medium py-2 block text-sm"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    {item.name}
-                  </Link>
-                ))}
-              </div>
+                  {navigationLoggedIn.map((item) => (
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      className="hover:text-purple-400 transition-colors duration-200 font-medium py-2 flex items-center justify-between"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <span>{item.name}</span>
+                      {item.name === "Carrinho" && quantidadeCarrinho > 0 && (
+                        <span className="bg-purple-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                          {quantidadeCarrinho > 99 ? "99+" : quantidadeCarrinho}
+                        </span>
+                      )}
+                    </Link>
+                  ))}
 
-              <div className="pt-4 border-t border-gray-700">
-                <Link
-                  to="/perfil"
-                  className="flex items-center space-x-2 w-full text-left py-2"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  <UserIcon className="h-5 w-5" />
-                  <span>Meu Perfil</span>
-                </Link>
-                <Link
-                  to="/carrinho"
-                  className="flex items-center space-x-2 w-full text-left py-2"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  <ShoppingBagIcon className="h-5 w-5" />
-                  <span>
-                    Carrinho{" "}
-                    {quantidadeCarrinho > 0 && `(${quantidadeCarrinho})`}
-                  </span>
-                </Link>
-              </div>
+                  {/* Links administrativos (mobile) */}
+                  {userIsAdmin && (
+                    <div className="pt-4 border-t border-gray-700">
+                      <p className="text-sm text-gray-400 mb-2">
+                        Administração
+                      </p>
+                      {navigationAdmin.map((item) => (
+                        <Link
+                          key={item.name}
+                          to={item.href}
+                          className="hover:text-yellow-400 transition-colors duration-200 font-medium py-2 block text-sm pl-4"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          <ShieldCheckIcon className="h-4 w-4 inline mr-2" />
+                          {item.name}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="pt-4 border-t border-gray-700">
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center space-x-2 w-full text-left py-2 text-red-400 hover:text-red-300"
+                    >
+                      <ArrowLeftOnRectangleIcon className="h-5 w-5" />
+                      <span>Sair</span>
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Menu para usuário não logado */}
+                  {navigationPublic.map((item) => (
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      className="hover:text-purple-400 transition-colors duration-200 font-medium py-2"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      {item.name}
+                    </Link>
+                  ))}
+                  <div className="pt-4 border-t border-gray-700 space-y-2">
+                    <Link
+                      to="/login"
+                      className="block py-2 hover:text-purple-400"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Login
+                    </Link>
+                    <Link
+                      to="/cadastro"
+                      className="block py-2 hover:text-purple-400"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Cadastro
+                    </Link>
+                    <Link
+                      to="/carrinho"
+                      className="flex items-center justify-between w-full text-left py-2"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <span>Carrinho</span>
+                      {quantidadeCarrinho > 0 && (
+                        <span className="bg-purple-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                          {quantidadeCarrinho > 99 ? "99+" : quantidadeCarrinho}
+                        </span>
+                      )}
+                    </Link>
+                  </div>
+                </>
+              )}
             </nav>
           </div>
         )}

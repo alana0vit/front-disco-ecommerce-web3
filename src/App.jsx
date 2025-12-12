@@ -16,6 +16,8 @@ import CategoriaCadastro from "./pages/categoria/CadastroCategoria";
 import CadastroEndereco from "./pages/cliente/Endereco";
 import Carrinho from "./pages/carrinho/Carrinho";
 import ScrollToTop from "./components/ScrollToTop";
+import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute";
 
 function App() {
   return (
@@ -25,29 +27,79 @@ function App() {
         <Header />
         <main className="grow">
           <Routes>
+            {/* Rotas públicas */}
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/cadastro" element={<CadastroCliente />} />
-            <Route path="/perfil" element={<Perfil />} />
-            <Route
-              path="/perfil/enderecos/novo"
-              element={<CadastroEndereco />}
-            />
-            <Route path="/carrinho" element={<Carrinho />} />
-
             <Route path="/produtos" element={<Produtos />} />
             <Route path="/produtos/show/:id" element={<ProdutoDetalhes />} />
-            {/* rotas de adm */}
-            <Route path="/admin/produtos/novo" element={<ProdutoCreate />} />
-            <Route path="/admin/produtos" element={<AdminProdutos />} />
-            <Route path="/admin/categorias" element={<AdminCategorias />} />
+
+            {/* Rotas protegidas (requer login) */}
+            <Route
+              path="/perfil"
+              element={
+                <ProtectedRoute>
+                  <Perfil />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/perfil/enderecos/novo"
+              element={
+                <ProtectedRoute>
+                  <CadastroEndereco />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/carrinho"
+              element={
+                <ProtectedRoute>
+                  <Carrinho />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Rotas de administrador */}
+            <Route
+              path="/admin/produtos/novo"
+              element={
+                <AdminRoute>
+                  <ProdutoCreate />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/produtos"
+              element={
+                <AdminRoute>
+                  <AdminProdutos />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/categorias"
+              element={
+                <AdminRoute>
+                  <AdminCategorias />
+                </AdminRoute>
+              }
+            />
             <Route
               path="/admin/categorias/nova"
-              element={<CategoriaCadastro />}
+              element={
+                <AdminRoute>
+                  <CategoriaCadastro />
+                </AdminRoute>
+              }
             />
             <Route
               path="/admin/produtos/editar/:id"
-              element={<ProdutoEdicao />}
+              element={
+                <AdminRoute>
+                  <ProdutoEdicao />
+                </AdminRoute>
+              }
             />
           </Routes>
         </main>

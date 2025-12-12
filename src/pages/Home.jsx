@@ -1,4 +1,4 @@
-// src/pages/Home.jsx
+// src/pages/Home.jsx - VERSÃO CORRIGIDA
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -10,14 +10,14 @@ import {
   ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 
-import api from "../services/Api";
-import HeroCarousel from "../components/Carrossel";
 import { useCarrinho } from "../context/CartContext";
 import { productService } from "../services/Produto";
+import CategoriaService from "../services/Categoria";
+import HeroCarousel from "../components/Carrossel";
 
 const Home = () => {
   const [featuredProducts, setFeaturedProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [topCategories, setTopCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -69,36 +69,94 @@ const Home = () => {
     }
   };
 
-  // Buscar categorias (com contagem baseada nos produtos)
-  const fetchCategories = () => {
-    const categoriasEstaticas = [
-      { name: "Rock", count: 0, image: "🎸" },
-      { name: "Jazz", count: 0, image: "🎷" },
-      { name: "MPB", count: 0, image: "🎵" },
-      { name: "Clássica", count: 0, image: "🎻" },
-      { name: "Eletrônica", count: 0, image: "🎹" },
-      { name: "Hip Hop", count: 0, image: "🎤" },
-    ];
+  // Buscar as 5 categorias com mais produtos
+  const fetchTopCategories = async () => {
+    try {
+      const categorias = await CategoriaService.listarCategorias();
 
-    if (featuredProducts.length > 0) {
-      const categoriasComContagem = categoriasEstaticas.map((cat) => ({
-        ...cat,
-        count: featuredProducts.filter((prod) => prod.category === cat.name)
-          .length,
+      // Se não houver categorias, retorna array vazio
+      if (!categorias || categorias.length === 0) {
+        setTopCategories([]);
+        return;
+      }
+
+      // Mapear categorias para incluir contagem de produtos
+      const categoriasComContagem = categorias.map((categoria) => ({
+        id: categoria.idCategoria,
+        name: categoria.nome,
+        count: categoria.quantidadeProdutos || 0,
+        image: this.getCategoryEmoji(categoria.nome),
       }));
-      setCategories(categoriasComContagem);
-    } else {
-      setCategories(categoriasEstaticas);
+
+      // Ordenar por quantidade de produtos (maior para menor)
+      const categoriasOrdenadas = categoriasComContagem.sort(
+        (a, b) => b.count - a.count
+      );
+
+      // Pegar apenas as 5 primeiras (ou menos se não houver 5)
+      const top5 = categoriasOrdenadas.slice(0, 5);
+
+      setTopCategories(top5);
+    } catch (err) {
+      console.error("Erro ao buscar categorias:", err);
+      // Em caso de erro, não mostra a seção de categorias
+      setTopCategories([]);
     }
   };
 
-  // Carregar produtos ao iniciar
+  // Função para obter emoji baseado no nome da categoria
+  const getCategoryEmoji = (categoryName) => {
+    const emojiMap = {
+      rock: "🎸",
+      jazz: "🎷",
+      mpb: "🎵",
+      clássica: "🎻",
+      clássico: "🎻",
+      eletrônica: "🎹",
+      eletrônico: "🎹",
+      "hip hop": "🎤",
+      pop: "🎤",
+      samba: "🎶",
+      forró: "🪕",
+      funk: "🔊",
+      blues: "🎸",
+      reggae: "🌿",
+      metal: "🤘",
+      indie: "🎧",
+    };
+
+    const lowerName = categoryName.toLowerCase();
+    for (const [key, emoji] of Object.entries(emojiMap)) {
+      if (lowerName.includes(key)) {
+        return emoji;
+      }
+    }
+
+    // Emoji padrão se não encontrar correspondência
+    const defaultEmojis = [
+      "🎵",
+      "🎶",
+      "🎼",
+      "🎧",
+      "🎸",
+      "🎷",
+      "🎹",
+      "🎻",
+      "🥁",
+      "🎤",
+    ];
+    return defaultEmojis[Math.floor(Math.random() * defaultEmojis.length)];
+  };
+
+  // Carregar dados ao iniciar
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
       try {
-        await fetchFeaturedProducts();
-      } catch {
+        // Carregar em paralelo para melhor performance
+        await Promise.all([fetchFeaturedProducts(), fetchTopCategories()]);
+      } catch (err) {
+        console.error("Erro ao carregar dados da página inicial:", err);
         setError("Erro ao carregar dados da página inicial");
       } finally {
         setLoading(false);
@@ -106,11 +164,6 @@ const Home = () => {
     };
     loadData();
   }, []);
-
-  // Atualizar categorias quando os produtos terminarem de carregar
-  useEffect(() => {
-    if (!loading) fetchCategories();
-  }, [loading, featuredProducts]);
 
   const handleAdicionarCarrinho = (product) => {
     adicionarProduto(product, 1); // Adiciona 1 unidade por padrão
@@ -159,44 +212,57 @@ const Home = () => {
     );
   }
 
-  // Página principal
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
       <HeroCarousel />
 
-      {/* Categorias */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Explorar por Gênero
-            </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Encontre o som perfeito entre nossas categorias cuidadosamente
-              organizadas
-            </p>
-          </div>
+      {/* Categorias em Destaque - Só mostra se houver categorias */}
+      {topCategories.length > 0 && (
+        <section className="py-16 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                Gêneros Mais Populares
+              </h2>
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                Descubra os gêneros mais procurados em nossa coleção
+              </p>
+            </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-            {categories.map((category) => (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+              {topCategories.map((category) => (
+                <Link
+                  key={category.id}
+                  to={`/produtos?categoria=${encodeURIComponent(
+                    category.name
+                  )}`}
+                  className="bg-gray-50 hover:bg-purple-50 border-2 border-gray-200 hover:border-purple-300 rounded-xl p-6 text-center transition-all duration-200 group"
+                >
+                  <div className="text-4xl mb-3">{category.image}</div>
+                  <h3 className="font-semibold text-gray-900 group-hover:text-purple-700 line-clamp-1">
+                    {category.name}
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {category.count} {category.count === 1 ? "disco" : "discos"}
+                  </p>
+                </Link>
+              ))}
+            </div>
+
+            {/* Link para ver todas as categorias */}
+            <div className="text-center mt-8">
               <Link
-                key={category.name}
-                to={`/produtos?categoria=${category.name}`}
-                className="bg-gray-50 hover:bg-purple-50 border-2 border-gray-200 hover:border-purple-300 rounded-xl p-6 text-center transition-all duration-200 group"
+                to="/produtos"
+                className="inline-flex items-center text-purple-600 hover:text-purple-700 font-semibold"
               >
-                <div className="text-4xl mb-3">{category.image}</div>
-                <h3 className="font-semibold text-gray-900 group-hover:text-purple-700">
-                  {category.name}
-                </h3>
-                <p className="text-sm text-gray-500 mt-1">
-                  {category.count} {category.count === 1 ? "disco" : "discos"}
-                </p>
+                Ver todos os gêneros disponíveis
+                <ArrowRightIcon className="ml-2 h-5 w-5" />
               </Link>
-            ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Produtos em Destaque */}
       <section className="py-16 bg-gray-50">

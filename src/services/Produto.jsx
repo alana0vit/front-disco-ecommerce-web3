@@ -1,4 +1,4 @@
-// src/services/Produto.jsx - VERSÃO CORRIGIDA E MELHORADA
+// src/services/Produto.jsx - VERSÃO COM ROTAS PÚBLICAS
 import axios from "axios";
 
 const API_BASE_URL = "http://localhost:3000";
@@ -8,9 +8,14 @@ const api = axios.create({
   baseURL: API_BASE_URL,
 });
 
-// Interceptor para adicionar headers automaticamente
+// Interceptor para adicionar token JWT automaticamente
 api.interceptors.request.use(
   (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
     // Se for FormData, não definir Content-Type (deixa o browser definir)
     if (!(config.data instanceof FormData)) {
       config.headers["Content-Type"] = "application/json";
@@ -27,35 +32,58 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     console.error("API Error:", error.response?.data || error.message);
+
+    // Se erro 401 (não autorizado), redireciona para login
+    if (error.response?.status === 401) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      window.location.href = "/login";
+    }
+
     return Promise.reject(error);
   }
 );
 
 export const productService = {
-  // Buscar todos os produtos - GET /produto
+  // ========== ROTAS PÚBLICAS (SEM AUTENTICAÇÃO) ==========
+
+  // Buscar todos os produtos - GET /produto/public
   getAllProducts: async () => {
     try {
-      const response = await api.get("/produto");
-      console.log("Produtos carregados da API:", response.data);
+      const response = await api.get("/produto/public");
+      console.log("Produtos carregados (público):", response.data.length);
       return response.data;
     } catch (error) {
       console.error("Erro ao carregar produtos:", error);
-      throw error;
+      // Fallback: tenta rota protegida se a pública falhar
+      try {
+        const response = await api.get("/produto");
+        return response.data;
+      } catch (fallbackError) {
+        console.error("Fallback também falhou:", fallbackError);
+        return []; // Retorna array vazio para não quebrar a aplicação
+      }
     }
   },
 
-  // Buscar produto por ID - GET /produto/:id
+  // Buscar produto por ID - GET /produto/public/:id
   getProductById: async (id) => {
     try {
-      const response = await api.get(`/produto/${id}`);
+      const response = await api.get(`/produto/public/${id}`);
       return response.data;
     } catch (error) {
-      console.error(`Erro ao carregar produto ${id}:`, error);
-      throw error;
+      console.error(`Erro ao carregar produto ${id} (público):`, error);
+      // Fallback: tenta rota protegida
+      try {
+        const response = await api.get(`/produto/${id}`);
+        return response.data;
+      } catch (fallbackError) {
+        throw fallbackError;
+      }
     }
   },
 
-  // Filtrar produtos - GET /produto/filtro?nome=&categoria=&precoMin=&precoMax=
+  // Filtrar produtos - GET /produto/public/filtro?...
   filterProducts: async (filters) => {
     try {
       const params = new URLSearchParams();
@@ -65,15 +93,31 @@ export const productService = {
       if (filters.precoMin) params.append("precoMin", filters.precoMin);
       if (filters.precoMax) params.append("precoMax", filters.precoMax);
 
-      const response = await api.get(`/produto/filtro?${params.toString()}`);
+      const response = await api.get(
+        `/produto/public/filtro?${params.toString()}`
+      );
       return response.data;
     } catch (error) {
-      console.error("Erro ao filtrar produtos:", error);
-      throw error;
+      console.error("Erro ao filtrar produtos (público):", error);
+      // Fallback: tenta rota protegida
+      try {
+        const params = new URLSearchParams();
+        if (filters.nome) params.append("nome", filters.nome);
+        if (filters.categoria) params.append("categoria", filters.categoria);
+        if (filters.precoMin) params.append("precoMin", filters.precoMin);
+        if (filters.precoMax) params.append("precoMax", filters.precoMax);
+
+        const response = await api.get(`/produto/filtro?${params.toString()}`);
+        return response.data;
+      } catch (fallbackError) {
+        return []; // Retorna array vazio
+      }
     }
   },
 
-  // Criar produto COM UPLOAD - POST /produto (usando FormData)
+  // ========== ROTAS PROTEGIDAS (COM AUTENTICAÇÃO) ==========
+
+  // Criar produto COM UPLOAD - POST /produto (usando FormData) - APENAS ADMIN
   createProduct: async (formData) => {
     try {
       const response = await api.post("/produto", formData);
@@ -85,7 +129,7 @@ export const productService = {
     }
   },
 
-  // Atualizar produto - PATCH /produto/:id (suporta FormData e JSON)
+  // Atualizar produto - PATCH /produto/:id (suporta FormData e JSON) - APENAS ADMIN
   updateProduct: async (id, productData) => {
     try {
       // Se for FormData, usar multipart, senão JSON normal
@@ -103,7 +147,7 @@ export const productService = {
     }
   },
 
-  // Deletar produto - DELETE /produto/:id
+  // Deletar produto - DELETE /produto/:id - APENAS ADMIN
   deleteProduct: async (id) => {
     try {
       await api.delete(`/produto/${id}`);
@@ -114,7 +158,7 @@ export const productService = {
     }
   },
 
-  // Ativar/Desativar produto - NOVO MÉTODO
+  // Ativar/Desativar produto - APENAS ADMIN
   toggleProductStatus: async (id, status) => {
     try {
       const response = await api.patch(`/produto/${id}`, { ativo: status });
@@ -127,18 +171,28 @@ export const productService = {
 };
 
 export const categoryService = {
-  // Buscar todas as categorias
+  // ========== ROTAS PÚBLICAS (SEM AUTENTICAÇÃO) ==========
+
+  // Buscar todas as categorias - GET /categoria/public
   getCategories: async () => {
     try {
-      const response = await api.get("/categoria");
+      const response = await api.get("/categoria/public");
       return response.data;
     } catch (error) {
-      console.error("Erro ao carregar categorias:", error);
-      throw error;
+      console.error("Erro ao carregar categorias (público):", error);
+      // Fallback: tenta rota protegida
+      try {
+        const response = await api.get("/categoria");
+        return response.data;
+      } catch (fallbackError) {
+        return []; // Retorna array vazio
+      }
     }
   },
 
-  // Buscar categoria por ID
+  // ========== ROTAS PROTEGIDAS (COM AUTENTICAÇÃO) ==========
+
+  // Buscar categoria por ID - GET /categoria/:id
   getCategoryById: async (id) => {
     try {
       const response = await api.get(`/categoria/${id}`);
@@ -149,7 +203,7 @@ export const categoryService = {
     }
   },
 
-  // Criar categoria
+  // Criar categoria - POST /categoria - APENAS ADMIN
   createCategory: async (categoryData) => {
     try {
       const response = await api.post("/categoria", categoryData);
@@ -160,7 +214,7 @@ export const categoryService = {
     }
   },
 
-  // Atualizar categoria
+  // Atualizar categoria - PATCH /categoria/:id - APENAS ADMIN
   updateCategory: async (id, categoryData) => {
     try {
       const response = await api.patch(`/categoria/${id}`, categoryData);
@@ -171,7 +225,7 @@ export const categoryService = {
     }
   },
 
-  // Deletar categoria
+  // Deletar categoria - DELETE /categoria/:id - APENAS ADMIN
   deleteCategory: async (id) => {
     try {
       await api.delete(`/categoria/${id}`);
