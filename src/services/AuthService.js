@@ -1,7 +1,7 @@
-// src/services/AuthService.js
+// src/services/AuthService.js - VERSÃO CORRIGIDA
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = 'http://localhost:3000'; // Altere para sua API
 const TOKEN_KEY = 'discool_token';
 const USER_KEY = 'discool_user';
 
@@ -15,16 +15,11 @@ const api = axios.create({
 // Funções auxiliares
 const getToken = () => localStorage.getItem(TOKEN_KEY);
 const getUser = () => {
-  try {
-    const userStr = localStorage.getItem(USER_KEY);
-    return userStr ? JSON.parse(userStr) : null;
-  } catch (error) {
-    console.error('Erro ao parsear usuário:', error);
-    return null;
-  }
+  const userStr = localStorage.getItem(USER_KEY);
+  return userStr ? JSON.parse(userStr) : null;
 };
 
-// Interceptor para adicionar token às requisições
+// Interceptor
 api.interceptors.request.use(
   (config) => {
     const token = getToken();
@@ -36,63 +31,36 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Interceptor para tratar erros de autenticação
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Token expirado ou inválido
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
-
 export const authService = {
   login: async (credentials) => {
     try {
       const response = await api.post('/login', credentials);
-      const { access_token, token, user } = response.data;
 
-      // Usa access_token ou token (dependendo da API)
-      const tokenToSave = access_token || token;
+      // DEBUG: Verifique a resposta da API
+      console.log('Resposta da API no login:', response.data);
 
-      if (!tokenToSave || !user) {
-        throw new Error('Dados de autenticação inválidos');
+      const { token, access_token, user } = response.data;
+
+      // Usa token ou access_token (depende da API)
+      const tokenToSave = token || access_token;
+
+      if (!tokenToSave) {
+        throw new Error('Token não encontrado na resposta');
       }
 
+      // SALVA NO LOCALSTORAGE
       localStorage.setItem(TOKEN_KEY, tokenToSave);
       localStorage.setItem(USER_KEY, JSON.stringify(user));
 
+      console.log('Token salvo:', tokenToSave.substring(0, 20) + '...');
+      console.log('Usuário salvo:', user);
+
       return { success: true, user, token: tokenToSave };
     } catch (error) {
-      console.error('Erro no login:', error);
+      console.error('Erro no login service:', error);
       return {
         success: false,
-        message: error.response?.data?.message || error.message || 'Erro no login'
-      };
-    }
-  },
-
-  register: async (userData) => {
-    try {
-      const response = await api.post('/register', userData);
-      const { access_token, token, user } = response.data;
-
-      const tokenToSave = access_token || token;
-
-      if (tokenToSave && user) {
-        localStorage.setItem(TOKEN_KEY, tokenToSave);
-        localStorage.setItem(USER_KEY, JSON.stringify(user));
-      }
-
-      return { success: true, user };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.response?.data?.message || 'Erro no cadastro'
+        message: error.response?.data?.message || 'Erro no login'
       };
     }
   },
@@ -100,28 +68,31 @@ export const authService = {
   logout: () => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    console.log('Logout realizado - localStorage limpo');
   },
 
-  getCurrentUser: () => getUser(),
+  getCurrentUser: () => {
+    const user = getUser();
+    console.log('Usuário recuperado do localStorage:', user);
+    return user;
+  },
 
   isAuthenticated: () => {
     const token = getToken();
     const user = getUser();
-    return !!token && !!user;
+    const isAuth = !!token && !!user;
+    console.log('isAuthenticated?', isAuth, 'Token:', !!token, 'User:', !!user);
+    return isAuth;
   },
 
   getToken: () => getToken(),
 
-  updateUser: (updatedUser) => {
-    try {
-      const currentUser = getUser();
-      const mergedUser = { ...currentUser, ...updatedUser };
-      localStorage.setItem(USER_KEY, JSON.stringify(mergedUser));
-      return mergedUser;
-    } catch (error) {
-      console.error('Erro ao atualizar usuário:', error);
-      return null;
-    }
+  // Para debug: verifica localStorage
+  debugStorage: () => {
+    return {
+      token: localStorage.getItem(TOKEN_KEY),
+      user: localStorage.getItem(USER_KEY)
+    };
   }
 };
 

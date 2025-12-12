@@ -1,4 +1,4 @@
-// src/components/Header.jsx - VERSÃO OTIMIZADA
+// src/components/Header.jsx - VERSÃO CORRIGIDA
 import React, { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -46,10 +46,9 @@ const Header = () => {
     { name: "Gerenciar Categorias", href: "/admin/categorias" },
   ];
 
-  // Verificar se o usuário é admin (agora isAdmin é sempre uma função)
+  // Verificar se o usuário é admin
   const userIsAdmin = useMemo(() => {
     try {
-      // Como definimos no AuthContext, isAdmin é sempre uma função
       return isAdmin ? isAdmin() : false;
     } catch (error) {
       console.error("Erro ao verificar admin:", error);
@@ -186,7 +185,7 @@ const Header = () => {
                 </>
               ) : (
                 <>
-                  {/* Usuário não logado */}
+                  {/* Usuário não logado - DESKTOP */}
                   <Link
                     to="/login"
                     className="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
@@ -215,18 +214,18 @@ const Header = () => {
               )}
             </div>
 
-            {/* Mobile menu button */}
+            {/* Mobile menu button - CORRIGIDO: carrinho aparece sempre */}
             <div className="md:hidden flex items-center space-x-2">
-              {user && (
-                <Link to="/carrinho" className="p-2 relative">
-                  <ShoppingBagIcon className="h-6 w-6" />
-                  {quantidadeCarrinho > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                      {quantidadeCarrinho > 99 ? "99+" : quantidadeCarrinho}
-                    </span>
-                  )}
-                </Link>
-              )}
+              {/* Carrinho aparece SEMPRE (logado ou não) */}
+              <Link to="/carrinho" className="p-2 relative">
+                <ShoppingBagIcon className="h-6 w-6" />
+                {quantidadeCarrinho > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {quantidadeCarrinho > 99 ? "99+" : quantidadeCarrinho}
+                  </span>
+                )}
+              </Link>
+
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
@@ -312,7 +311,7 @@ const Header = () => {
                 </>
               ) : (
                 <>
-                  {/* Menu para usuário não logado */}
+                  {/* Menu para usuário não logado - MOBILE */}
                   {navigationPublic.map((item) => (
                     <Link
                       key={item.name}
@@ -338,18 +337,7 @@ const Header = () => {
                     >
                       Cadastro
                     </Link>
-                    <Link
-                      to="/carrinho"
-                      className="flex items-center justify-between w-full text-left py-2"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      <span>Carrinho</span>
-                      {quantidadeCarrinho > 0 && (
-                        <span className="bg-purple-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                          {quantidadeCarrinho > 99 ? "99+" : quantidadeCarrinho}
-                        </span>
-                      )}
-                    </Link>
+                    {/* Carrinho já removido daqui pois agora está no botão superior */}
                   </div>
                 </>
               )}

@@ -1,7 +1,7 @@
-// src/pages/Profile.js
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { 
+// src/pages/cliente/Perfil.jsx - VERSÃO CORRIGIDA
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import {
   UserIcon,
   EnvelopeIcon,
   PhoneIcon,
@@ -12,62 +12,93 @@ import {
   MapPinIcon,
   PlusIcon,
   TrashIcon,
-  StarIcon
-} from '@heroicons/react/24/outline';
-import EnderecoService from '../../services/Endereco';
+  StarIcon,
+} from "@heroicons/react/24/outline";
+import { useAuth } from "../../context/AuthContext"; // ← ADICIONE ESTA IMPORT
+import EnderecoService from "../../services/Endereco";
 
 const Perfil = () => {
+  const { user } = useAuth(); // ← PEGUE O USUÁRIO DO CONTEXTO
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [enderecos, setEnderecos] = useState([]);
   const [carregandoEnderecos, setCarregandoEnderecos] = useState(false);
-  
-  // Dados mockados - depois virão do contexto/API
+
+  // Use os dados reais do usuário logado
   const [clientData, setClientData] = useState({
-    idCliente: 1,
-    nome: 'João Silva',
-    email: 'joao@email.com',
-    telefone: '(11) 99999-9999',
-    dataNasc: '1990-01-01',
-    dataCadastro: '2024-01-01',
-    ativo: true
+    idCliente: user?.idCliente || 0,
+    nome: user?.nome || "",
+    email: user?.email || "",
+    telefone: user?.telefone || "",
+    dataNasc: user?.dataNasc || "",
+    dataCadastro: user?.dataCadastro || new Date().toISOString(),
+    ativo: user?.ativo || true,
+    role: user?.role || "CLIENTE",
   });
 
   const [formData, setFormData] = useState({ ...clientData });
 
-  // Carregar endereços
+  // Atualizar quando o usuário mudar
   useEffect(() => {
-    carregarEnderecos();
-  }, []);
+    if (user) {
+      setClientData({
+        idCliente: user.idCliente || 0,
+        nome: user.nome || "",
+        email: user.email || "",
+        telefone: user.telefone || "",
+        dataNasc: user.dataNasc || "",
+        dataCadastro: user.dataCadastro || new Date().toISOString(),
+        ativo: user.ativo || true,
+        role: user.role || "CLIENTE",
+      });
+      setFormData({
+        idCliente: user.idCliente || 0,
+        nome: user.nome || "",
+        email: user.email || "",
+        telefone: user.telefone || "",
+        dataNasc: user.dataNasc || "",
+        dataCadastro: user.dataCadastro || new Date().toISOString(),
+        ativo: user.ativo || true,
+        role: user.role || "CLIENTE",
+      });
+    }
+  }, [user]);
+
+  // Carregar endereços do usuário real
+  useEffect(() => {
+    if (user?.idCliente) {
+      carregarEnderecos();
+    }
+  }, [user]);
 
   const carregarEnderecos = async () => {
     setCarregandoEnderecos(true);
     try {
-      // Para teste, vamos buscar todos os endereços e filtrar pelo cliente
+      // Usar o ID real do cliente logado
       const todosEnderecos = await EnderecoService.listarEnderecos();
       const enderecosCliente = todosEnderecos.filter(
-        endereco => endereco.cliente.idCliente === clientData.idCliente
+        (endereco) => endereco.cliente?.idCliente === user.idCliente
       );
       setEnderecos(enderecosCliente);
     } catch (error) {
-      console.error('Erro ao carregar endereços:', error);
-      alert('Erro ao carregar endereços');
+      console.error("Erro ao carregar endereços:", error);
+      alert("Erro ao carregar endereços");
     } finally {
       setCarregandoEnderecos(false);
     }
   };
 
   const handleExcluirEndereco = async (idEndereco) => {
-    if (!confirm('Tem certeza que deseja excluir este endereço?')) {
+    if (!confirm("Tem certeza que deseja excluir este endereço?")) {
       return;
     }
 
     try {
       await EnderecoService.excluirEndereco(idEndereco);
-      alert('Endereço excluído com sucesso!');
+      alert("Endereço excluído com sucesso!");
       carregarEnderecos(); // Recarregar a lista
     } catch (error) {
-      console.error('Erro ao excluir endereço:', error);
+      console.error("Erro ao excluir endereço:", error);
       alert(error.message);
     }
   };
@@ -75,10 +106,10 @@ const Perfil = () => {
   const handleDefinirPadrao = async (idEndereco) => {
     try {
       await EnderecoService.definirComoPadrao(idEndereco);
-      alert('Endereço definido como padrão!');
+      alert("Endereço definido como padrão!");
       carregarEnderecos(); // Recarregar a lista
     } catch (error) {
-      console.error('Erro ao definir endereço como padrão:', error);
+      console.error("Erro ao definir endereço como padrão:", error);
       alert(error.message);
     }
   };
@@ -95,17 +126,16 @@ const Perfil = () => {
 
   const handleSave = async () => {
     setIsLoading(true);
-    
+
     try {
-      // Simular atualização na API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      // Aqui você chamaria a API real para atualizar o perfil
+      // Por enquanto, apenas atualiza localmente
       setClientData(formData);
       setIsEditing(false);
-      alert('Perfil atualizado com sucesso!');
+      alert("Perfil atualizado com sucesso!");
     } catch (error) {
-      console.error('Error updating profile:', error);
-      alert('Erro ao atualizar perfil.');
+      console.error("Error updating profile:", error);
+      alert("Erro ao atualizar perfil.");
     } finally {
       setIsLoading(false);
     }
@@ -113,19 +143,47 @@ const Perfil = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
+    if (!dateString) return "Não informada";
+    return new Date(dateString).toLocaleDateString("pt-BR");
   };
 
   const formatEndereco = (endereco) => {
-    return `${endereco.rua}, ${endereco.numCasa} - ${endereco.bairro}, ${endereco.cidade} - ${endereco.estado}`;
+    if (!endereco) return "";
+    return `${endereco.rua || ""}, ${endereco.numCasa || ""} - ${
+      endereco.bairro || ""
+    }, ${endereco.cidade || ""} - ${endereco.estado || ""}`;
   };
+
+  // Se não há usuário logado, mostra mensagem
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white rounded-2xl shadow-sm p-8 text-center">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              Acesso Restrito
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Você precisa estar logado para acessar esta página.
+            </p>
+            <Link
+              to="/login"
+              className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold"
+            >
+              Fazer Login
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -145,10 +203,11 @@ const Perfil = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-bold text-white">
-                  {clientData.nome}
+                  {clientData.nome || "Usuário"}
                 </h2>
                 <p className="text-purple-100">
-                  Cliente desde {formatDate(clientData.dataCadastro)}
+                  {clientData.role === "ADMIN" ? "Administrador" : "Cliente"}{" "}
+                  desde {formatDate(clientData.dataCadastro)}
                 </p>
               </div>
               <div className="bg-white/20 rounded-full p-3">
@@ -168,7 +227,7 @@ const Perfil = () => {
                       Nome completo
                     </label>
                     <p className="mt-1 text-lg text-gray-900">
-                      {clientData.nome}
+                      {clientData.nome || "Não informado"}
                     </p>
                   </div>
 
@@ -177,7 +236,7 @@ const Perfil = () => {
                       E-mail
                     </label>
                     <p className="mt-1 text-lg text-gray-900">
-                      {clientData.email}
+                      {clientData.email || "Não informado"}
                     </p>
                   </div>
 
@@ -186,7 +245,7 @@ const Perfil = () => {
                       Telefone
                     </label>
                     <p className="mt-1 text-lg text-gray-900">
-                      {clientData.telefone}
+                      {clientData.telefone || "Não informado"}
                     </p>
                   </div>
 
@@ -208,7 +267,7 @@ const Perfil = () => {
                     <PencilIcon className="h-5 w-5 mr-2" />
                     Editar Perfil
                   </button>
-                  
+
                   <Link
                     to="/pedidos"
                     className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold transition-colors"
@@ -307,7 +366,7 @@ const Perfil = () => {
                     )}
                     Salvar Alterações
                   </button>
-                  
+
                   <button
                     onClick={handleCancel}
                     disabled={isLoading}
@@ -322,7 +381,7 @@ const Perfil = () => {
           </div>
         </div>
 
-        {/* Seção de Endereços - Agora na parte de baixo */}
+        {/* Seção de Endereços */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
@@ -341,7 +400,9 @@ const Perfil = () => {
             ) : enderecos.length === 0 ? (
               <div className="text-center py-8">
                 <MapPinIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 mb-2 text-lg">Nenhum endereço cadastrado</p>
+                <p className="text-gray-500 mb-2 text-lg">
+                  Nenhum endereço cadastrado
+                </p>
                 <p className="text-gray-400 text-sm mb-6">
                   Adicione seu primeiro endereço para facilitar suas compras
                 </p>
@@ -359,9 +420,9 @@ const Perfil = () => {
                   <div
                     key={endereco.idEndereco}
                     className={`border rounded-lg p-4 ${
-                      endereco.padrao 
-                        ? 'border-purple-500 bg-purple-50' 
-                        : 'border-gray-200'
+                      endereco.padrao
+                        ? "border-purple-500 bg-purple-50"
+                        : "border-gray-200"
                     }`}
                   >
                     <div className="flex items-start justify-between mb-3">
@@ -370,13 +431,15 @@ const Perfil = () => {
                           <StarIcon className="h-5 w-5 text-yellow-500 mr-2" />
                         )}
                         <span className="font-medium text-gray-900">
-                          {endereco.padrao ? 'Endereço Padrão' : 'Endereço'}
+                          {endereco.padrao ? "Endereço Padrão" : "Endereço"}
                         </span>
                       </div>
                       <div className="flex space-x-2">
                         {!endereco.padrao && (
                           <button
-                            onClick={() => handleDefinirPadrao(endereco.idEndereco)}
+                            onClick={() =>
+                              handleDefinirPadrao(endereco.idEndereco)
+                            }
                             className="text-yellow-600 hover:text-yellow-700 p-1"
                             title="Definir como padrão"
                           >
@@ -391,7 +454,9 @@ const Perfil = () => {
                           <PencilIcon className="h-4 w-4" />
                         </Link>
                         <button
-                          onClick={() => handleExcluirEndereco(endereco.idEndereco)}
+                          onClick={() =>
+                            handleExcluirEndereco(endereco.idEndereco)
+                          }
                           className="text-red-600 hover:text-red-700 p-1"
                           title="Excluir endereço"
                         >
@@ -399,14 +464,15 @@ const Perfil = () => {
                         </button>
                       </div>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <p className="text-sm text-gray-600">
                         {formatEndereco(endereco)}
                       </p>
                       {endereco.complemento && (
                         <p className="text-sm text-gray-500">
-                          <span className="font-medium">Complemento:</span> {endereco.complemento}
+                          <span className="font-medium">Complemento:</span>{" "}
+                          {endereco.complemento}
                         </p>
                       )}
                       <p className="text-sm text-gray-500">
