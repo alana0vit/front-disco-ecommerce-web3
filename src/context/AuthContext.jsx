@@ -5,6 +5,7 @@ import React, {
   useContext,
   useEffect,
   useCallback,
+  useMemo,
 } from "react";
 import { authService } from "../services/AuthService";
 
@@ -86,13 +87,16 @@ export const AuthProvider = ({ children }) => {
     return user.role === "ADMIN";
   }, [user]);
 
-  const value = {
-    user,
-    loading,
-    login,
-    logout,
-    isAdmin,
-  };
+  const value = useMemo(
+    () => ({
+      user,
+      loading,
+      login,
+      logout,
+      isAdmin,
+    }),
+    [user, loading, login, logout, isAdmin]
+  );
 
   // DEBUG: log quando o valor muda
   console.log("AuthContext value atualizado:", {

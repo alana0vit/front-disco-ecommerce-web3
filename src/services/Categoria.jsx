@@ -1,5 +1,5 @@
 // src/services/CategoriaService.js - VERSÃO COM ROTAS PÚBLICAS
-import api from "./Api";
+import api from "./AuthService";
 
 class CategoriaService {
   // Criar categoria - APENAS ADMIN

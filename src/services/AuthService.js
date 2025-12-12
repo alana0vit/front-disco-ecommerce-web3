@@ -26,6 +26,12 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Remover Content-Type para FormData (deixe o browser definir automaticamente)
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
+
     return config;
   },
   (error) => Promise.reject(error)
@@ -64,6 +70,25 @@ export const authService = {
       };
     }
   },
+
+  register: async (data) => {
+  try {
+    const response = await api.post('/register', data);
+
+    console.log('Resposta do registro:', response.data);
+
+    return {
+      success: true,
+      data: response.data
+    };
+  } catch (error) {
+    console.error('Erro no register service:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Erro no registro'
+    };
+  }
+},
 
   logout: () => {
     localStorage.removeItem(TOKEN_KEY);

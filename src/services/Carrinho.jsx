@@ -1,5 +1,5 @@
 // src/services/carrinhoService.js
-import api from "./Api";
+import api from "./AuthService";
 
 class CarrinhoService {
   // Criar um novo pedido (sem autenticação)

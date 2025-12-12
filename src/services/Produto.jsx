@@ -1,12 +1,5 @@
 // src/services/Produto.jsx - VERSÃO COM ROTAS PÚBLICAS
-import axios from "axios";
-
-const API_BASE_URL = "http://localhost:3000";
-
-// Instância única para todas as requisições
-const api = axios.create({
-  baseURL: API_BASE_URL,
-});
+import api from "./AuthService";
 
 // Interceptor para adicionar token JWT automaticamente
 api.interceptors.request.use(

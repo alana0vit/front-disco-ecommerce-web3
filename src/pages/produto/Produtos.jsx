@@ -309,11 +309,11 @@ const Produtos = () => {
                       className="block cursor-pointer"
                     >
                       <img
-                        src={product.imagemUrl}
+                        src={product.imagemUrl }
                         alt={product.nome}
                         className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
                         onError={(e) => {
-                          e.target.src = "/api/placeholder/300/300";
+                          e.target.src = "https://via.placeholder.com/300x300?text=Imagem+não+disponível";
                         }}
                       />
                     </Link>
