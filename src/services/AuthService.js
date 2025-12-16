@@ -103,6 +103,11 @@ export const authService = {
       console.log('Token salvo:', tokenToSave.substring(0, 20) + '...');
       console.log('Usuário salvo:', user);
 
+      // Notifica app sobre mudança de autenticação
+      try {
+        window.dispatchEvent(new Event('auth-changed'));
+      } catch { }
+
       return { success: true, user, token: tokenToSave };
     } catch (error) {
       console.error('Erro no login service:', error);
@@ -136,6 +141,10 @@ export const authService = {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     console.log('Logout realizado - localStorage limpo');
+    // Notifica app sobre mudança de autenticação
+    try {
+      window.dispatchEvent(new Event('auth-changed'));
+    } catch { }
   },
 
   getCurrentUser: () => {

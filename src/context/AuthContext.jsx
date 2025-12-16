@@ -50,6 +50,20 @@ export const AuthProvider = ({ children }) => {
     };
 
     loadUser();
+
+    // Ouve mudanças de autenticação disparadas pelo AuthService
+    const onAuthChanged = () => {
+      const token = authService.getToken();
+      const storedUser = authService.getCurrentUser();
+      const expired = authService.isTokenExpired(token);
+      if (token && !expired && storedUser) {
+        setUser(storedUser);
+      } else {
+        setUser(null);
+      }
+    };
+    window.addEventListener("auth-changed", onAuthChanged);
+    return () => window.removeEventListener("auth-changed", onAuthChanged);
   }, []);
 
   // Função de login

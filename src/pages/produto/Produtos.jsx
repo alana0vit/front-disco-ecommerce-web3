@@ -1,6 +1,6 @@
 // src/pages/produto/Products.js
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   MagnifyingGlassIcon,
   FunnelIcon,
@@ -15,6 +15,7 @@ const Produtos = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { adicionarProduto } = useCarrinho();
+  const location = useLocation();
 
   // Estados para filtros
   const [filters, setFilters] = useState({
@@ -30,6 +31,23 @@ const Produtos = () => {
     loadProducts();
     loadCategories();
   }, []);
+
+  // Sincroniza filtros com a URL (vindo do Home)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const nome = params.get("nome") || "";
+    const categoria = params.get("categoria") || "";
+    const precoMin = params.get("precoMin") || "";
+    const precoMax = params.get("precoMax") || "";
+
+    // Atualiza estado e aplica filtro
+    const newFilters = { nome, categoria, precoMin, precoMax };
+    setFilters(newFilters);
+    // Se houver algum filtro definido na URL, aplica
+    if (nome || categoria || precoMin || precoMax) {
+      loadProducts(newFilters);
+    }
+  }, [location.search]);
 
   const loadProducts = async (filterParams = {}) => {
     try {
@@ -213,10 +231,7 @@ const Produtos = () => {
                 >
                   <option value="">Todas as categorias</option>
                   {categories.map((category) => (
-                    <option
-                      key={category.idCategoria}
-                      value={category.idCategoria}
-                    >
+                    <option key={category.idCategoria} value={category.nome}>
                       {category.nome}
                     </option>
                   ))}
@@ -309,11 +324,12 @@ const Produtos = () => {
                       className="block cursor-pointer"
                     >
                       <img
-                        src={product.imagemUrl }
+                        src={product.imagemUrl}
                         alt={product.nome}
                         className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
                         onError={(e) => {
-                          e.target.src = "https://via.placeholder.com/300x300?text=Imagem+não+disponível";
+                          e.target.src =
+                            "https://via.placeholder.com/300x300?text=Imagem+não+disponível";
                         }}
                       />
                     </Link>
