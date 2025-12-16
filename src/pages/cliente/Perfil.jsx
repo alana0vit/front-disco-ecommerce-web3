@@ -15,6 +15,7 @@ import {
   StarIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../../context/AuthContext";
+import { clientService } from "../../services/Cliente";
 import EnderecoService from "../../services/Endereco";
 
 const Perfil = () => {
@@ -97,22 +98,18 @@ const Perfil = () => {
 
     try {
       await EnderecoService.excluirEndereco(idEndereco);
-      alert("Endereço excluído com sucesso!");
       carregarEnderecos(); // Recarregar a lista
     } catch (error) {
       console.error("Erro ao excluir endereço:", error);
-      alert(error.message);
     }
   };
 
   const handleDefinirPadrao = async (idEndereco) => {
     try {
       await EnderecoService.definirComoPadrao(idEndereco);
-      alert("Endereço definido como padrão!");
       carregarEnderecos(); // Recarregar a lista
     } catch (error) {
       console.error("Erro ao definir endereço como padrão:", error);
-      alert(error.message);
     }
   };
 
@@ -130,14 +127,52 @@ const Perfil = () => {
     setIsLoading(true);
 
     try {
-      // Aqui você chamaria a API real para atualizar o perfil
-      // Por enquanto, apenas atualiza localmente
-      setClientData(formData);
+      // Resolver ID do cliente (idCliente preferencialmente, senão id)
+      let idCliente = user?.idCliente || user?.id;
+      if (!idCliente) {
+        try {
+          const stored = localStorage.getItem("discool_user");
+          const parsed = stored ? JSON.parse(stored) : null;
+          idCliente = parsed?.idCliente || parsed?.id;
+        } catch {}
+      }
+
+      if (!idCliente) {
+        console.error(
+          "Não foi possível identificar o cliente para atualização"
+        );
+        setIsLoading(false);
+        return;
+      }
+
+      // Monta payload aceito pelo UpdateClienteDto (campos parciais de RegisterDto)
+      const payload = {
+        nome: formData.nome,
+        email: formData.email,
+        telefone: formData.telefone,
+        dataNasc: formData.dataNasc,
+      };
+
+      const updated = await clientService.updateClient(idCliente, payload);
+
+      // Atualiza estados locais
+      setClientData((prev) => ({ ...prev, ...updated }));
+      setFormData((prev) => ({ ...prev, ...updated }));
       setIsEditing(false);
-      alert("Perfil atualizado com sucesso!");
+
+      // Persiste no localStorage para refletir no app todo e Header
+      try {
+        const storedStr = localStorage.getItem("discool_user");
+        const stored = storedStr ? JSON.parse(storedStr) : {};
+        const merged = { ...stored, ...updated };
+        localStorage.setItem("discool_user", JSON.stringify(merged));
+        // Dispara evento para AuthContext recarregar usuário
+        window.dispatchEvent(new Event("auth-changed"));
+      } catch (e) {
+        console.warn("Falha ao atualizar usuário no localStorage:", e);
+      }
     } catch (error) {
       console.error("Error updating profile:", error);
-      alert("Erro ao atualizar perfil.");
     } finally {
       setIsLoading(false);
     }
@@ -201,7 +236,7 @@ const Perfil = () => {
         {/* Informações do Perfil */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-8">
           {/* Header do Perfil */}
-          <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-8">
+          <div className="bg-linear-to-r from-purple-600 to-pink-600 px-6 py-8">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-bold text-white">
