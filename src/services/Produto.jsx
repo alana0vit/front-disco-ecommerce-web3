@@ -1,42 +1,6 @@
 // src/services/Produto.jsx - VERSÃO COM ROTAS PÚBLICAS
 import api from "./AuthService";
 
-// Interceptor para adicionar token JWT automaticamente
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-
-    // Se for FormData, não definir Content-Type (deixa o browser definir)
-    if (!(config.data instanceof FormData)) {
-      config.headers["Content-Type"] = "application/json";
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Interceptor para tratamento de erros
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    console.error("API Error:", error.response?.data || error.message);
-
-    // Se erro 401 (não autorizado), redireciona para login
-    if (error.response?.status === 401) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      window.location.href = "/login";
-    }
-
-    return Promise.reject(error);
-  }
-);
-
 export const productService = {
   // ========== ROTAS PÚBLICAS (SEM AUTENTICAÇÃO) ==========
 

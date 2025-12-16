@@ -19,6 +19,34 @@ const getUser = () => {
   return userStr ? JSON.parse(userStr) : null;
 };
 
+// Decodifica JWT (base64url) de forma segura
+const parseJwt = (token) => {
+  try {
+    const base64Url = token.split('.')[1];
+    if (!base64Url) return null;
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => `%${('00' + c.charCodeAt(0).toString(16)).slice(-2)}`)
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    console.warn('Falha ao decodificar JWT:', e);
+    return null;
+  }
+};
+
+// Verifica se o token expirou com base no campo exp (segundos)
+const isTokenExpired = (token) => {
+  if (!token) return true;
+  const payload = parseJwt(token);
+  if (!payload || !payload.exp) return true; // se não tiver exp, considere expirado
+  const nowInSeconds = Math.floor(Date.now() / 1000);
+  return payload.exp <= nowInSeconds;
+};
+
 // Interceptor
 api.interceptors.request.use(
   (config) => {
@@ -35,6 +63,20 @@ api.interceptors.request.use(
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+// Interceptor de resposta: se 401, faz logout
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token inválido ou expirado
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+      console.warn('Sessão expirada. Realizando logout automático.');
+    }
+    return Promise.reject(error);
+  }
 );
 
 export const authService = {
@@ -72,23 +114,23 @@ export const authService = {
   },
 
   register: async (data) => {
-  try {
-    const response = await api.post('/register', data);
+    try {
+      const response = await api.post('/register', data);
 
-    console.log('Resposta do registro:', response.data);
+      console.log('Resposta do registro:', response.data);
 
-    return {
-      success: true,
-      data: response.data
-    };
-  } catch (error) {
-    console.error('Erro no register service:', error);
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Erro no registro'
-    };
-  }
-},
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      console.error('Erro no register service:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Erro no registro'
+      };
+    }
+  },
 
   logout: () => {
     localStorage.removeItem(TOKEN_KEY);
@@ -105,12 +147,19 @@ export const authService = {
   isAuthenticated: () => {
     const token = getToken();
     const user = getUser();
-    const isAuth = !!token && !!user;
-    console.log('isAuthenticated?', isAuth, 'Token:', !!token, 'User:', !!user);
+    const expired = isTokenExpired(token);
+    const isAuth = !!token && !!user && !expired;
+    console.log(
+      'isAuthenticated?', isAuth,
+      'Token:', !!token,
+      'Expired:', expired,
+      'User:', !!user
+    );
     return isAuth;
   },
 
   getToken: () => getToken(),
+  isTokenExpired: (token) => isTokenExpired(token),
 
   // Para debug: verifica localStorage
   debugStorage: () => {

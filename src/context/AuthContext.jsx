@@ -27,11 +27,18 @@ export const AuthProvider = ({ children }) => {
     const loadUser = async () => {
       try {
         console.log("Carregando usuário do localStorage...");
+        const token = authService.getToken();
         const storedUser = authService.getCurrentUser();
+        const expired = authService.isTokenExpired(token);
         console.log("Usuário recuperado do localStorage:", storedUser);
+        console.log("Token presente?", !!token, "Token expirado?", expired);
 
-        if (storedUser) {
+        if (token && !expired && storedUser) {
           setUser(storedUser);
+        } else {
+          // Se não houver token válido, garanta estado deslogado
+          authService.logout();
+          setUser(null);
         }
       } catch (error) {
         console.error("Erro ao carregar usuário:", error);

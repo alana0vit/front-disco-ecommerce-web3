@@ -72,34 +72,24 @@ const Home = () => {
   // Buscar as 5 categorias com mais produtos
   const fetchTopCategories = async () => {
     try {
-      const categorias = await CategoriaService.listarCategorias();
+      // Usa o serviço que já calcula quantidadeProdutos com base nos produtos
+      const categoriasTop = await CategoriaService.listarTopCategorias();
 
-      // Se não houver categorias, retorna array vazio
-      if (!categorias || categorias.length === 0) {
+      if (!categoriasTop || categoriasTop.length === 0) {
         setTopCategories([]);
         return;
       }
 
-      // Mapear categorias para incluir contagem de produtos
-      const categoriasComContagem = categorias.map((categoria) => ({
-        id: categoria.idCategoria,
-        name: categoria.nome,
-        count: categoria.quantidadeProdutos || 0,
-        image: this.getCategoryEmoji(categoria.nome),
+      const mapped = categoriasTop.map((categoria) => ({
+        id: categoria.idCategoria ?? categoria.id,
+        name: categoria.nome ?? categoria.name,
+        count: categoria.quantidadeProdutos ?? categoria.count ?? 0,
+        image: getCategoryEmoji(categoria.nome ?? categoria.name),
       }));
 
-      // Ordenar por quantidade de produtos (maior para menor)
-      const categoriasOrdenadas = categoriasComContagem.sort(
-        (a, b) => b.count - a.count
-      );
-
-      // Pegar apenas as 5 primeiras (ou menos se não houver 5)
-      const top5 = categoriasOrdenadas.slice(0, 5);
-
-      setTopCategories(top5);
+      setTopCategories(mapped);
     } catch (err) {
-      console.error("Erro ao buscar categorias:", err);
-      // Em caso de erro, não mostra a seção de categorias
+      console.error("Erro ao buscar categorias em destaque:", err);
       setTopCategories([]);
     }
   };

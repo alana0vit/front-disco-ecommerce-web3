@@ -141,14 +141,12 @@ const CadastroCliente = () => {
         // Login automático após cadastro
         try {
           await login(formData.email, formData.senha);
-          alert("Cadastro realizado com sucesso! Você já está logado.");
           navigate("/");
         } catch (loginError) {
           console.log(
             "Cadastro feito, mas login automático falhou:",
             loginError
           );
-          alert("Cadastro realizado com sucesso! Faça login para continuar.");
           navigate("/login");
         }
       } else {
