@@ -14,11 +14,11 @@ import {
   TrashIcon,
   StarIcon,
 } from "@heroicons/react/24/outline";
-import { useAuth } from "../../context/AuthContext"; // ← ADICIONE ESTA IMPORT
+import { useAuth } from "../../context/AuthContext";
 import EnderecoService from "../../services/Endereco";
 
 const Perfil = () => {
-  const { user } = useAuth(); // ← PEGUE O USUÁRIO DO CONTEXTO
+  const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [enderecos, setEnderecos] = useState([]);
@@ -41,7 +41,7 @@ const Perfil = () => {
   // Atualizar quando o usuário mudar
   useEffect(() => {
     if (user) {
-      setClientData({
+      const newClientData = {
         idCliente: user.idCliente || 0,
         nome: user.nome || "",
         email: user.email || "",
@@ -50,23 +50,15 @@ const Perfil = () => {
         dataCadastro: user.dataCadastro || new Date().toISOString(),
         ativo: user.ativo || true,
         role: user.role || "CLIENTE",
-      });
-      setFormData({
-        idCliente: user.idCliente || 0,
-        nome: user.nome || "",
-        email: user.email || "",
-        telefone: user.telefone || "",
-        dataNasc: user.dataNasc || "",
-        dataCadastro: user.dataCadastro || new Date().toISOString(),
-        ativo: user.ativo || true,
-        role: user.role || "CLIENTE",
-      });
+      };
+      setClientData(newClientData);
+      setFormData(newClientData);
     }
   }, [user]);
 
   // Carregar endereços do usuário real
   useEffect(() => {
-    if (user?.idCliente) {
+    if (user?.idCliente || user?.id) {
       carregarEnderecos();
     }
   }, [user]);
@@ -74,15 +66,25 @@ const Perfil = () => {
   const carregarEnderecos = async () => {
     setCarregandoEnderecos(true);
     try {
-      // Usar o ID real do cliente logado
-      const todosEnderecos = await EnderecoService.listarEnderecos();
-      const enderecosCliente = todosEnderecos.filter(
-        (endereco) => endereco.cliente?.idCliente === user.idCliente
-      );
-      setEnderecos(enderecosCliente);
+      console.log("Cliente ID:", user?.idCliente);
+
+      // Adicione debug para ver o que está sendo retornado
+      const enderecosDoCliente = await EnderecoService.listarEnderecos();
+      console.log("Resultado do serviço:", enderecosDoCliente);
+
+      if (Array.isArray(enderecosDoCliente)) {
+        setEnderecos(enderecosDoCliente);
+        console.log("Endereços carregados:", enderecosDoCliente.length);
+      } else {
+        console.warn("Endereços não é um array:", enderecosDoCliente);
+        setEnderecos([]);
+      }
     } catch (error) {
-      console.error("Erro ao carregar endereços:", error);
-      alert("Erro ao carregar endereços");
+      console.error("Erro detalhado ao carregar endereços:", error);
+      console.error("Status:", error.response?.status);
+      console.error("Data:", error.response?.data);
+      alert(`Erro ao carregar endereços: ${error.message}`);
+      setEnderecos([]);
     } finally {
       setCarregandoEnderecos(false);
     }
@@ -380,14 +382,16 @@ const Perfil = () => {
             )}
           </div>
         </div>
-
-        {/* Seção de Endereços */}
+        {/* Seção de Endereços com debug */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-900">
                 Meus Endereços
               </h3>
+              <div className="text-sm text-gray-500">
+                Cliente ID: {user?.idCliente} | Total: {enderecos.length}
+              </div>
             </div>
           </div>
 

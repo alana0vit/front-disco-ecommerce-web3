@@ -3,10 +3,12 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeftIcon, MapPinIcon } from "@heroicons/react/24/outline";
 import EnderecoService from "../../services/Endereco";
+import { useAuth } from "../../context/AuthContext";
 
 const CadastroEndereco = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { user } = useAuth();
 
   const [loading, setLoading] = useState(false);
 
@@ -87,20 +89,29 @@ const CadastroEndereco = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Aqui você precisaria passar o ID do cliente de alguma forma
-    // Por enquanto vou usar um ID fixo para teste
-    const idClienteTeste = 1;
+    // Resolve o id do cliente logado (contexto ou localStorage como fallback)
+    let idCliente = user?.idCliente || user?.id;
+    if (!idCliente) {
+      try {
+        const stored = localStorage.getItem("discool_user");
+        const parsed = stored ? JSON.parse(stored) : null;
+        idCliente = parsed?.idCliente || parsed?.id;
+      } catch {}
+    }
+    if (!idCliente) {
+      alert("Não foi possível identificar o cliente. Faça login novamente.");
+      navigate("/login");
+      return;
+    }
 
     setLoading(true);
     try {
       if (id) {
         // Edição
         await EnderecoService.atualizarEndereco(id, formData);
-        alert("Endereço atualizado com sucesso!");
       } else {
         // Criação
-        await EnderecoService.criarEndereco(idClienteTeste, formData);
-        alert("Endereço cadastrado com sucesso!");
+        await EnderecoService.criarEndereco(idCliente, formData);
       }
       navigate("/perfil");
     } catch (error) {
@@ -346,7 +357,7 @@ const CadastroEndereco = () => {
           <div className="mt-8 flex justify-end space-x-3">
             <button
               type="button"
-              onClick={() => navigate("/perfil/enderecos")}
+              onClick={() => navigate("/perfil")}
               className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
             >
               Cancelar

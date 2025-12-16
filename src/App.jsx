@@ -14,6 +14,7 @@ import ProdutoEdicao from "./pages/produto/ProdutoEdicao";
 import AdminCategorias from "./pages/categoria/AdminCategoria";
 import CategoriaCadastro from "./pages/categoria/CadastroCategoria";
 import CadastroEndereco from "./pages/cliente/Endereco";
+import EditarEndereco from "./pages/cliente/EditarEndereco";
 import Carrinho from "./pages/carrinho/Carrinho";
 import ScrollToTop from "./components/ScrollToTop";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -48,6 +49,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <CadastroEndereco />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/perfil/enderecos/editar/:id"
+              element={
+                <ProtectedRoute>
+                  <EditarEndereco />
                 </ProtectedRoute>
               }
             />
