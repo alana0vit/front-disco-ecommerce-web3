@@ -1,10 +1,7 @@
-// src/services/Produto.jsx - VERSÃO COM ROTAS PÚBLICAS
 import api from "./AuthService";
 
 export const productService = {
-  // ========== ROTAS PÚBLICAS (SEM AUTENTICAÇÃO) ==========
 
-  // Buscar todos os produtos - GET /produto/public
   getAllProducts: async () => {
     try {
       const response = await api.get("/produto/public");
@@ -12,25 +9,22 @@ export const productService = {
       return response.data;
     } catch (error) {
       console.error("Erro ao carregar produtos:", error);
-      // Fallback: tenta rota protegida se a pública falhar
       try {
         const response = await api.get("/produto");
         return response.data;
       } catch (fallbackError) {
         console.error("Fallback também falhou:", fallbackError);
-        return []; // Retorna array vazio para não quebrar a aplicação
+        return []; 
       }
     }
   },
 
-  // Buscar produto por ID - GET /produto/public/:id
   getProductById: async (id) => {
     try {
       const response = await api.get(`/produto/public/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Erro ao carregar produto ${id} (público):`, error);
-      // Fallback: tenta rota protegida
       try {
         const response = await api.get(`/produto/${id}`);
         return response.data;
@@ -40,7 +34,6 @@ export const productService = {
     }
   },
 
-  // Filtrar produtos - GET /produto/public/filtro?...
   filterProducts: async (filters) => {
     try {
       const params = new URLSearchParams();

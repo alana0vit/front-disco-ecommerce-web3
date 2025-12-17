@@ -17,7 +17,6 @@ const Produtos = () => {
   const { adicionarProduto } = useCarrinho();
   const location = useLocation();
 
-  // Estados para filtros
   const [filters, setFilters] = useState({
     nome: "",
     categoria: "",
@@ -26,7 +25,6 @@ const Produtos = () => {
   });
   const [showFilters, setShowFilters] = useState(false);
 
-  // Carregar produtos e categorias
   useEffect(() => {
     loadProducts();
     loadCategories();

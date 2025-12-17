@@ -1,4 +1,3 @@
-// src/pages/pedidos/ResumoPedido.jsx
 import { useEffect, useState } from "react";
 import { useLocation, useParams, Link } from "react-router-dom";
 import PedidoService from "../../services/Pedido";

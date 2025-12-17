@@ -1,4 +1,3 @@
-// src/pages/ProdutoDetalhes.jsx
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeftIcon, ShoppingCartIcon } from "@heroicons/react/24/outline";
@@ -15,13 +14,12 @@ const ProdutoDetalhes = () => {
   const [quantity, setQuantity] = useState(1);
   const [addedToCart, setAddedToCart] = useState(false);
 
-  // Estoque disponível = total - reservado (preferindo campo vindo da API)
   const available =
     (product?.estoqueDisponivel ??
       Math.max(
         0,
         (product?.estoqueTotal ?? product?.estoque ?? 0) -
-          (product?.estoqueReservado ?? 0)
+        (product?.estoqueReservado ?? 0)
       )) || 0;
 
   useEffect(() => {
@@ -93,7 +91,6 @@ const ProdutoDetalhes = () => {
   const addToCart = () => {
     if (!product || available === 0 || !product.ativo) return;
 
-    // Garante que a quantidade seja um número válido
     const finalQuantity = typeof quantity === "number" ? quantity : 1;
 
     if (finalQuantity < 1) {
@@ -102,7 +99,6 @@ const ProdutoDetalhes = () => {
     }
 
     try {
-      // Formatar o produto para o formato esperado pelo contexto
       const produtoFormatado = {
         id: product.idProduto,
         name: product.nome,
@@ -113,14 +109,11 @@ const ProdutoDetalhes = () => {
         category: product.categoria?.nome || "Sem categoria",
       };
 
-      // Adicionar ao carrinho usando o contexto COM A QUANTIDADE
       adicionarProduto(produtoFormatado, finalQuantity);
 
-      // Feedback visual
       setAddedToCart(true);
       setTimeout(() => setAddedToCart(false), 2000);
 
-      // Resetar quantidade após adicionar
       setQuantity(1);
     } catch (error) {
       console.error("Erro ao adicionar ao carrinho:", error);
@@ -128,7 +121,6 @@ const ProdutoDetalhes = () => {
     }
   };
 
-  // Função para obter nome da categoria
   const getCategoryName = (category) => {
     if (typeof category === "object" && category.nome) {
       return category.nome;
@@ -232,9 +224,8 @@ const ProdutoDetalhes = () => {
                       Estoque
                     </h4>
                     <p
-                      className={`text-lg font-semibold ${
-                        available > 0 ? "text-green-600" : "text-red-600"
-                      }`}
+                      className={`text-lg font-semibold ${available > 0 ? "text-green-600" : "text-red-600"
+                        }`}
                     >
                       {available > 0
                         ? `${available} unidades`
@@ -246,9 +237,8 @@ const ProdutoDetalhes = () => {
                       Status
                     </h4>
                     <p
-                      className={`text-lg font-semibold ${
-                        product.ativo ? "text-green-600" : "text-red-600"
-                      }`}
+                      className={`text-lg font-semibold ${product.ativo ? "text-green-600" : "text-red-600"
+                        }`}
                     >
                       {product.ativo ? "Disponível" : "Indisponível"}
                     </p>
@@ -320,11 +310,10 @@ const ProdutoDetalhes = () => {
                     <button
                       onClick={addToCart}
                       disabled={addedToCart}
-                      className={`w-full py-4 px-6 rounded-lg font-semibold text-lg flex items-center justify-center transition-colors duration-200 ${
-                        addedToCart
-                          ? "bg-green-600 text-white"
-                          : "bg-purple-600 hover:bg-purple-700 text-white"
-                      }`}
+                      className={`w-full py-4 px-6 rounded-lg font-semibold text-lg flex items-center justify-center transition-colors duration-200 ${addedToCart
+                        ? "bg-green-600 text-white"
+                        : "bg-purple-600 hover:bg-purple-700 text-white"
+                        }`}
                     >
                       <ShoppingCartIcon className="h-6 w-6 mr-2" />
                       {addedToCart

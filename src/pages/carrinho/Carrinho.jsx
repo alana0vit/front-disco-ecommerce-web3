@@ -33,6 +33,7 @@ const Carrinho = () => {
   const [desconto, setDesconto] = useState(0);
   const [frete, setFrete] = useState(0);
   const [opcoesFrete, setOpcoesFrete] = useState([]);
+  const [editandoQuantidade, setEditandoQuantidade] = useState({});
   const [freteSelecionado, setFreteSelecionado] = useState("");
   const [dadosCliente, setDadosCliente] = useState({
     nome: "",
@@ -87,6 +88,11 @@ const Carrinho = () => {
     }
   }, [itens, enderecoSelecionadoId]);
 
+  // Limpa estados de edição quando itens mudam
+  useEffect(() => {
+    setEditandoQuantidade({});
+  }, [itens]);
+
   const carregarOpcoesFrete = async () => {
     try {
       const enderecoSel = enderecos.find(
@@ -106,12 +112,16 @@ const Carrinho = () => {
   };
 
   const handleQuantidadeChange = async (produtoId, novaQuantidade) => {
-    if (novaQuantidade < 1) return;
+    const quantidadeNumerica = parseInt(novaQuantidade, 10);
+    
+    if (isNaN(quantidadeNumerica) || quantidadeNumerica < 1) {
+      return;
+    }
 
     try {
       const item = itens.find((item) => item.id === produtoId);
       const verificacaoEstoque = await carrinhoService.verificarEstoque([
-        { id: produtoId, quantidade: novaQuantidade },
+        { id: produtoId, quantidade: quantidadeNumerica },
       ]);
 
       if (!verificacaoEstoque[0].disponivel) {
@@ -121,10 +131,61 @@ const Carrinho = () => {
         return;
       }
 
-      atualizarQuantidade(produtoId, novaQuantidade);
+      atualizarQuantidade(produtoId, quantidadeNumerica);
       setError(null);
     } catch (err) {
       setError("Erro ao verificar estoque");
+    }
+  };
+
+  // Funções para manipulação do input de quantidade
+  const handleInputQuantidadeChange = (produtoId, valor) => {
+    if (valor === "") {
+      setEditandoQuantidade({ ...editandoQuantidade, [produtoId]: "" });
+      return;
+    }
+
+    const numValor = parseInt(valor, 10);
+    
+    if (isNaN(numValor) || numValor < 1) {
+      return;
+    }
+
+    setEditandoQuantidade({ ...editandoQuantidade, [produtoId]: numValor });
+  };
+
+  const handleInputQuantidadeBlur = async (item) => {
+    const produtoId = item.id;
+    const valorAtual = editandoQuantidade[produtoId];
+    
+    if (valorAtual === "" || valorAtual === undefined || valorAtual === null) {
+      setEditandoQuantidade({ ...editandoQuantidade, [produtoId]: undefined });
+      return;
+    }
+
+    const novaQuantidade = parseInt(valorAtual, 10);
+
+    if (isNaN(novaQuantidade) || novaQuantidade < 1) {
+      setEditandoQuantidade({ ...editandoQuantidade, [produtoId]: undefined });
+      return;
+    }
+
+    if (novaQuantidade === item.quantidade) {
+      setEditandoQuantidade({ ...editandoQuantidade, [produtoId]: undefined });
+      return;
+    }
+
+    await handleQuantidadeChange(produtoId, novaQuantidade);
+    setEditandoQuantidade({ ...editandoQuantidade, [produtoId]: undefined });
+  };
+
+  const handleInputQuantidadeKeyDown = (e, item) => {
+    if (e.key === 'Enter') {
+      e.target.blur();
+    }
+    if (e.key === 'Escape') {
+      setEditandoQuantidade({ ...editandoQuantidade, [item.id]: undefined });
+      e.target.blur();
     }
   };
 
@@ -582,20 +643,30 @@ const Carrinho = () => {
                         handleQuantidadeChange(item.id, item.quantidade - 1)
                       }
                       disabled={item.quantidade <= 1}
-                      className="p-1 rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
                     >
                       <MinusIcon className="h-4 w-4" />
                     </button>
 
-                    <span className="w-12 text-center font-semibold">
-                      {item.quantidade}
-                    </span>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="1"
+                        max={item.stock || 999}
+                        value={editandoQuantidade[item.id] !== undefined ? editandoQuantidade[item.id] : item.quantidade}
+                        onChange={(e) => handleInputQuantidadeChange(item.id, e.target.value)}
+                        onBlur={() => handleInputQuantidadeBlur(item)}
+                        onKeyDown={(e) => handleInputQuantidadeKeyDown(e, item)}
+                        onFocus={() => setEditandoQuantidade({ ...editandoQuantidade, [item.id]: item.quantidade })}
+                        className="w-16 h-8 text-center border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 font-semibold text-gray-900 bg-white shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                    </div>
 
                     <button
                       onClick={() =>
                         handleQuantidadeChange(item.id, item.quantidade + 1)
                       }
-                      className="p-1 rounded-full hover:bg-gray-100"
+                      className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors duration-150"
                     >
                       <PlusIcon className="h-4 w-4" />
                     </button>
@@ -715,10 +786,6 @@ const Carrinho = () => {
 
               {/* Benefícios */}
               <div className="mt-6 space-y-3 text-sm text-gray-600">
-                <div className="flex items-center">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                  <span>Frete grátis para compras acima de R$ 150</span>
-                </div>
                 <div className="flex items-center">
                   <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
                   <span>Garantia Discool de 30 dias</span>

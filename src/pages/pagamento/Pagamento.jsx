@@ -1,10 +1,8 @@
-// src/pages/pagamento/Pagamento.jsx
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import carrinhoService from "../../services/Carrinho";
 import PedidoService from "../../services/Pedido";
 
-// Mapeia para os valores esperados pelo backend (enum Metodo)
 const metodos = [
   { id: "Pix", label: "PIX" },
   { id: "Cartão", label: "Cartão" },
@@ -147,7 +145,6 @@ const Pagamento = () => {
           </button>
         </div>
 
-        {/* Status do pagamento */}
         <div className="bg-white rounded-lg border p-6">
           <h2 className="text-xl font-bold mb-2">Status</h2>
           <div className="text-sm">
