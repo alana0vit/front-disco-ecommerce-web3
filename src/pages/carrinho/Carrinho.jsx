@@ -258,28 +258,11 @@ const Carrinho = () => {
         carrinhoAtual.idCarrinho || carrinho.idCarrinho
       );
 
-      // 6) Criar pagamento (PENDENTE)
-      const pagamento = await carrinhoService.criarPagamento({
-        idPedido: pedidoCriado.idPedido,
-        valor: Number(pedidoCriado.valorTotal || total),
-        metodoPag: "PIX",
-      });
-
-      // 7) Opcional: aprovar automaticamente (para demo)
-      try {
-        await carrinhoService.atualizarPagamento(pagamento.idPag, {
-          statusPag: "Pago",
-        });
-      } catch (e) {
-        // Se não aprovar, segue com pendente
-      }
-
-      // 8) Limpar carrinho local e navegar
+      // 6) Limpar carrinho local e navegar para tela de pagamento
       limparCarrinho();
-      navigate("/pedido-confirmado", {
+      navigate(`/pagamento/${pedidoCriado.idPedido}`, {
         state: {
           pedido: pedidoCriado,
-          pagamento,
           total: Number(pedidoCriado.valorTotal || total),
         },
       });

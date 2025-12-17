@@ -38,6 +38,7 @@ const Header = () => {
     { name: "Discos", href: "/produtos" },
     { name: "Perfil", href: "/perfil" },
     { name: "Carrinho", href: "/carrinho" },
+    { name: "Pedidos", href: "/pedidos" },
   ];
 
   // Navegação administrativa

@@ -17,6 +17,11 @@ import CadastroEndereco from "./pages/cliente/Endereco";
 import EditarEndereco from "./pages/cliente/EditarEndereco";
 import Carrinho from "./pages/carrinho/Carrinho";
 import PedidoConfirmado from "./pages/carrinho/PedidoConfirmado";
+import Checkout from "./pages/checkout/Checkout";
+import Pedidos from "./pages/pedidos/Pedidos";
+import PedidoDetalhes from "./pages/pedidos/PedidoDetalhes";
+import ResumoPedido from "./pages/pedidos/ResumoPedido";
+import Pagamento from "./pages/pagamento/Pagamento";
 import ScrollToTop from "./components/ScrollToTop";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
@@ -70,10 +75,50 @@ function App() {
               }
             />
             <Route
+              path="/checkout"
+              element={
+                <ProtectedRoute>
+                  <Checkout />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/pedidos"
+              element={
+                <ProtectedRoute>
+                  <Pedidos />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/pedidos/:id"
+              element={
+                <ProtectedRoute>
+                  <PedidoDetalhes />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/pedido-confirmado"
               element={
                 <ProtectedRoute>
                   <PedidoConfirmado />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/pedido/resumo/:id"
+              element={
+                <ProtectedRoute>
+                  <ResumoPedido />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/pagamento/:id"
+              element={
+                <ProtectedRoute>
+                  <Pagamento />
                 </ProtectedRoute>
               }
             />

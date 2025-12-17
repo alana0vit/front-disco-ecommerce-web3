@@ -126,7 +126,8 @@ class CarrinhoService {
       const response = await api.patch(`/pagamento/${idPagamento}`, statusData);
       return response.data;
     } catch (error) {
-      console.error("Erro ao atualizar pagamento:", error);
+      // Evita spam de erros no console em casos esperados de 400
+      // (o fluxo do front trata com fallback)
       throw new Error(
         error.response?.data?.message || "Erro ao atualizar pagamento"
       );
