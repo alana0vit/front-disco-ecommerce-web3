@@ -16,6 +16,7 @@ import CategoriaCadastro from "./pages/categoria/CadastroCategoria";
 import CadastroEndereco from "./pages/cliente/Endereco";
 import EditarEndereco from "./pages/cliente/EditarEndereco";
 import Carrinho from "./pages/carrinho/Carrinho";
+import PedidoConfirmado from "./pages/carrinho/PedidoConfirmado";
 import ScrollToTop from "./components/ScrollToTop";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
@@ -65,6 +66,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Carrinho />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/pedido-confirmado"
+              element={
+                <ProtectedRoute>
+                  <PedidoConfirmado />
                 </ProtectedRoute>
               }
             />

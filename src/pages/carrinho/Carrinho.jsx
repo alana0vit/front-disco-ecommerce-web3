@@ -12,9 +12,12 @@ import {
   MapPinIcon,
 } from "@heroicons/react/24/outline";
 import { useCarrinho } from "../../context/CartContext";
+import { useAuth } from "../../context/AuthContext";
 import carrinhoService from "../../services/Carrinho";
+import EnderecoService from "../../services/Endereco";
 
 const Carrinho = () => {
+  const { user } = useAuth();
   const {
     itens,
     removerProduto,
@@ -36,15 +39,8 @@ const Carrinho = () => {
     email: "",
     telefone: "",
   });
-  const [dadosEntrega, setDadosEntrega] = useState({
-    cep: "",
-    rua: "",
-    numero: "",
-    complemento: "",
-    bairro: "",
-    cidade: "",
-    estado: "",
-  });
+  const [enderecos, setEnderecos] = useState([]);
+  const [enderecoSelecionadoId, setEnderecoSelecionadoId] = useState(null);
   const [etapa, setEtapa] = useState("carrinho"); // 'carrinho', 'dados', 'confirmacao'
   const navigate = useNavigate();
 
@@ -53,19 +49,51 @@ const Carrinho = () => {
   const subtotal = getTotalPreco();
   const total = subtotal + frete - desconto;
 
-  // Carregar opções de frete quando os itens mudarem
+  // CEP do endereço selecionado (para exibir/calcular frete no resumo)
+  const enderecoSelecionado = enderecos.find(
+    (e) => (e.idEndereco || e.id) === enderecoSelecionadoId
+  );
+  const cepSelecionado = enderecoSelecionado?.cep;
+
+  // Prefill dados do cliente e endereços ao logar
   useEffect(() => {
-    if (itens.length > 0 && dadosEntrega.cep) {
+    if (user) {
+      setDadosCliente({
+        nome: user.nome || "",
+        email: user.email || "",
+        telefone: user.telefone || "",
+      });
+
+      // Carrega endereços e seleciona padrão
+      (async () => {
+        try {
+          const list = await EnderecoService.listarEnderecos();
+          setEnderecos(Array.isArray(list) ? list : []);
+          const padrao = list?.find?.((e) => e.padrao === true) || list?.[0];
+          if (padrao) {
+            setEnderecoSelecionadoId(padrao.idEndereco || padrao.id);
+          }
+        } catch (e) {
+          // se falhar, mantém vazio
+        }
+      })();
+    }
+  }, [user]);
+
+  // Carregar opções de frete quando itens ou endereço selecionado mudarem
+  useEffect(() => {
+    if (itens.length > 0 && enderecoSelecionadoId) {
       carregarOpcoesFrete();
     }
-  }, [itens, dadosEntrega.cep]);
+  }, [itens, enderecoSelecionadoId]);
 
   const carregarOpcoesFrete = async () => {
     try {
-      const opcoes = await carrinhoService.calcularFrete(
-        dadosEntrega.cep,
-        itens
+      const enderecoSel = enderecos.find(
+        (e) => (e.idEndereco || e.id) === enderecoSelecionadoId
       );
+      const cep = enderecoSel?.cep || "00000000";
+      const opcoes = await carrinhoService.calcularFrete(cep, itens);
       setOpcoesFrete(opcoes);
 
       if (opcoes.length > 0) {
@@ -156,8 +184,14 @@ const Carrinho = () => {
   };
 
   const handleFinalizarPedido = async () => {
-    if (!dadosCliente.nome || !dadosCliente.email || !dadosEntrega.cep) {
-      setError("Preencha todos os dados obrigatórios.");
+    if (!user) {
+      setError("Você precisa estar logado para finalizar a compra.");
+      navigate("/login");
+      return;
+    }
+
+    if (!dadosCliente.nome || !dadosCliente.email) {
+      setError("Preencha os dados de contato.");
       return;
     }
 
@@ -165,47 +199,92 @@ const Carrinho = () => {
     setError(null);
 
     try {
-      // Verificar estoque de todos os itens
+      // 1) Verificar estoque de todos os itens (usando estoque disponível)
       const verificacaoEstoque = await carrinhoService.verificarEstoque(itens);
-      const itensSemEstoque = verificacaoEstoque.filter(
-        (item) => !item.disponivel
-      );
-
+      const itensSemEstoque = verificacaoEstoque.filter((i) => !i.disponivel);
       if (itensSemEstoque.length > 0) {
         const produtosSemEstoque = itensSemEstoque
-          .map((item) => item.produto)
+          .map((i) => `${i.produto} (disp: ${i.estoqueDisponivel})`)
           .join(", ");
         setError(`Estoque insuficiente para: ${produtosSemEstoque}`);
         setLoading(false);
         return;
       }
 
-      // Criar pedido no backend
+      // 2) Resolver idCliente
+      const idCliente =
+        user.idCliente || user.id || user.cliente?.idCliente || null;
+      if (!idCliente) {
+        setError("Não foi possível identificar o cliente.");
+        setLoading(false);
+        return;
+      }
+
+      // 3) Obter/crear carrinho do backend e sincronizar itens locais
+      const carrinho = await carrinhoService.getCarrinho(idCliente);
+      const carrinhoAtual = await carrinhoService.syncLocalCartToBackend(
+        idCliente,
+        itens
+      );
+
+      // 4) Usar endereço selecionado
+      if (!Array.isArray(enderecos) || enderecos.length === 0) {
+        setError(
+          "Nenhum endereço encontrado. Cadastre um endereço no seu Perfil."
+        );
+        setLoading(false);
+        return;
+      }
+      const enderecoSel =
+        enderecos.find(
+          (e) => (e.idEndereco || e.id) === enderecoSelecionadoId
+        ) || enderecos[0];
+      const idEndereco = enderecoSel.idEndereco || enderecoSel.id;
+
+      if (!idEndereco) {
+        setError("Não foi possível resolver o endereço para o pedido.");
+        setLoading(false);
+        return;
+      }
+
+      // 5) Criar pedido (o backend monta itens a partir do carrinho)
       const pedidoData = {
-        id_cliente: 1, // Cliente padrão (sem login)
-        id_endereco: 1, // Endereço padrão
-        item_pedidos: itens.map((item) => ({
-          id_produto_itpdd: item.id,
-          quantidade: item.quantidade,
-          valorUnitario: item.price,
-        })),
+        id_cliente: idCliente,
+        id_endereco: idEndereco,
+        descricao: `Pedido Discool - ${new Date().toLocaleString()}`,
       };
+      const pedidoCriado = await carrinhoService.criarPedido(
+        pedidoData,
+        carrinhoAtual.idCarrinho || carrinho.idCarrinho
+      );
 
-      const pedidoCriado = await carrinhoService.criarPedido(pedidoData);
+      // 6) Criar pagamento (PENDENTE)
+      const pagamento = await carrinhoService.criarPagamento({
+        idPedido: pedidoCriado.idPedido,
+        valor: Number(pedidoCriado.valorTotal || total),
+        metodoPag: "PIX",
+      });
 
-      // Limpar carrinho após sucesso
+      // 7) Opcional: aprovar automaticamente (para demo)
+      try {
+        await carrinhoService.atualizarPagamento(pagamento.idPag, {
+          statusPag: "Pago",
+        });
+      } catch (e) {
+        // Se não aprovar, segue com pendente
+      }
+
+      // 8) Limpar carrinho local e navegar
       limparCarrinho();
-
-      // Redirecionar para página de confirmação
       navigate("/pedido-confirmado", {
         state: {
           pedido: pedidoCriado,
-          total: total,
-          dadosCliente: dadosCliente,
+          pagamento,
+          total: Number(pedidoCriado.valorTotal || total),
         },
       });
     } catch (err) {
-      console.error("Erro ao criar pedido:", err);
+      console.error("Erro ao finalizar pedido:", err);
       setError(err.message || "Erro ao finalizar pedido. Tente novamente.");
     } finally {
       setLoading(false);
@@ -332,8 +411,7 @@ const Carrinho = () => {
                 </div>
               </div>
             </div>
-
-            {/* Dados de Entrega */}
+            {/* Seleção de Endereço */}
             <div>
               <div className="flex items-center mb-4">
                 <MapPinIcon className="h-6 w-6 text-purple-600 mr-2" />
@@ -341,120 +419,68 @@ const Carrinho = () => {
                   Endereço de Entrega
                 </h2>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    CEP *
-                  </label>
-                  <input
-                    type="text"
-                    value={dadosEntrega.cep}
-                    onChange={(e) =>
-                      setDadosEntrega({ ...dadosEntrega, cep: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                    required
-                  />
+              {enderecos.length === 0 ? (
+                <div className="text-sm text-gray-600">
+                  Nenhum endereço cadastrado.
+                  <button
+                    onClick={() => navigate("/perfil")}
+                    className="text-purple-600 hover:text-purple-700 font-semibold ml-1"
+                  >
+                    Cadastre um endereço no seu Perfil.
+                  </button>
                 </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Rua *
-                  </label>
-                  <input
-                    type="text"
-                    value={dadosEntrega.rua}
-                    onChange={(e) =>
-                      setDadosEntrega({ ...dadosEntrega, rua: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                    required
-                  />
+              ) : (
+                <div className="space-y-3">
+                  {enderecos.map((e) => {
+                    const id = e.idEndereco || e.id;
+                    const label = `${e.rua || ""}, ${
+                      e.numCasa || e.numero || ""
+                    } - ${e.bairro || ""}, ${e.cidade || ""} - ${
+                      e.estado || ""
+                    }`;
+                    return (
+                      <label
+                        key={id}
+                        className="flex items-start space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
+                      >
+                        <input
+                          type="radio"
+                          name="endereco"
+                          value={id}
+                          checked={enderecoSelecionadoId === id}
+                          onChange={() => setEnderecoSelecionadoId(id)}
+                          className="mt-1 text-purple-600 focus:ring-purple-500"
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium text-gray-900">
+                              {label}
+                            </span>
+                            {e.padrao && (
+                              <span className="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                                Padrão
+                              </span>
+                            )}
+                          </div>
+                          {e.cep && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              CEP: {e.cep}
+                            </div>
+                          )}
+                        </div>
+                      </label>
+                    );
+                  })}
+                  <div className="text-right">
+                    <button
+                      onClick={() => navigate("/perfil")}
+                      className="text-sm text-purple-600 hover:text-purple-700 font-semibold"
+                    >
+                      Gerenciar endereços
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Número *
-                  </label>
-                  <input
-                    type="text"
-                    value={dadosEntrega.numero}
-                    onChange={(e) =>
-                      setDadosEntrega({
-                        ...dadosEntrega,
-                        numero: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Complemento
-                  </label>
-                  <input
-                    type="text"
-                    value={dadosEntrega.complemento}
-                    onChange={(e) =>
-                      setDadosEntrega({
-                        ...dadosEntrega,
-                        complemento: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Bairro *
-                  </label>
-                  <input
-                    type="text"
-                    value={dadosEntrega.bairro}
-                    onChange={(e) =>
-                      setDadosEntrega({
-                        ...dadosEntrega,
-                        bairro: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Cidade *
-                  </label>
-                  <input
-                    type="text"
-                    value={dadosEntrega.cidade}
-                    onChange={(e) =>
-                      setDadosEntrega({
-                        ...dadosEntrega,
-                        cidade: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Estado *
-                  </label>
-                  <input
-                    type="text"
-                    value={dadosEntrega.estado}
-                    onChange={(e) =>
-                      setDadosEntrega({
-                        ...dadosEntrega,
-                        estado: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                    required
-                  />
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Botão Finalizar */}
@@ -635,7 +661,7 @@ const Carrinho = () => {
                 </div>
 
                 {/* Opções de Frete */}
-                {dadosEntrega.cep && opcoesFrete.length > 0 && (
+                {cepSelecionado && opcoesFrete.length > 0 && (
                   <div className="border-t border-gray-200 pt-3">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Opções de Frete:
@@ -675,9 +701,9 @@ const Carrinho = () => {
                   </div>
                 )}
 
-                {!dadosEntrega.cep && (
+                {!cepSelecionado && (
                   <div className="text-sm text-gray-500">
-                    Informe o CEP para calcular o frete
+                    Selecione um endereço para calcular o frete
                   </div>
                 )}
 

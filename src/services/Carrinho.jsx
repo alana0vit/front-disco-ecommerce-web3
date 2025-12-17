@@ -2,10 +2,93 @@
 import api from "./AuthService";
 
 class CarrinhoService {
-  // Criar um novo pedido (sem autenticação)
-  async criarPedido(pedidoData) {
+  // ==== CARRINHO (protegido) ====
+  async getCarrinho(idCliente) {
     try {
-      const response = await api.post("/pedido", pedidoData);
+      const response = await api.get(`/carrinho/${idCliente}`);
+      return response.data;
+    } catch (error) {
+      console.error("Erro ao obter carrinho:", error);
+      throw new Error(
+        error.response?.data?.message || "Erro ao obter carrinho"
+      );
+    }
+  }
+
+  async addItem(idCliente, { id_produto, quantidade }) {
+    try {
+      const response = await api.post(`/carrinho/${idCliente}/add`, {
+        id_produto,
+        quantidade,
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Erro ao adicionar item ao carrinho:", error);
+      throw new Error(
+        error.response?.data?.message || "Erro ao adicionar item"
+      );
+    }
+  }
+
+  async updateItem(idCliente, idItem, { quantidade }) {
+    try {
+      const response = await api.patch(
+        `/carrinho/${idCliente}/update/${idItem}`,
+        { quantidade }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Erro ao atualizar quantidade:", error);
+      throw new Error(
+        error.response?.data?.message || "Erro ao atualizar item"
+      );
+    }
+  }
+
+  async removeItem(idCliente, idItem) {
+    try {
+      const response = await api.delete(
+        `/carrinho/${idCliente}/remove/${idItem}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Erro ao remover item do carrinho:", error);
+      throw new Error(error.response?.data?.message || "Erro ao remover item");
+    }
+  }
+
+  // Sincroniza os itens do carrinho local com o carrinho do backend do cliente
+  async syncLocalCartToBackend(idCliente, localItems = []) {
+    const carrinho = await this.getCarrinho(idCliente);
+    const itensAtuais = Array.isArray(carrinho?.itens) ? carrinho.itens : [];
+
+    for (const itemLocal of localItems) {
+      const existente = itensAtuais.find(
+        (i) => i.produto?.idProduto === itemLocal.id
+      );
+
+      const quantidadeDesejada = itemLocal.quantidade ?? 1;
+      if (existente) {
+        if (existente.quantidade !== quantidadeDesejada) {
+          await this.updateItem(idCliente, existente.idItem, {
+            quantidade: quantidadeDesejada,
+          });
+        }
+      } else {
+        await this.addItem(idCliente, {
+          id_produto: itemLocal.id,
+          quantidade: quantidadeDesejada,
+        });
+      }
+    }
+
+    return await this.getCarrinho(idCliente);
+  }
+
+  // ==== PEDIDO (protegido) ====
+  async criarPedido(pedidoData, idCarrinho) {
+    try {
+      const response = await api.post(`/pedido/${idCarrinho}`, pedidoData);
       return response.data;
     } catch (error) {
       console.error("Erro ao criar pedido:", error);
@@ -56,13 +139,26 @@ class CarrinhoService {
       // Para cada item, verificar se há estoque suficiente
       const verificacoes = itensCarrinho.map(async (item) => {
         try {
-          const response = await api.get(`/produto/${item.id}`);
-          const produto = response.data;
+          let produtoResp;
+          try {
+            produtoResp = await api.get(`/produto/public/${item.id}`);
+          } catch {
+            produtoResp = await api.get(`/produto/${item.id}`);
+          }
+          const produto = produtoResp.data;
 
-          if (produto.estoque < item.quantidade) {
+          const available =
+            produto.estoqueDisponivel ??
+            Math.max(
+              0,
+              (produto.estoqueTotal ?? produto.estoque ?? 0) -
+                (produto.estoqueReservado ?? 0)
+            );
+
+          if (available < item.quantidade) {
             return {
               produto: produto.nome,
-              estoqueDisponivel: produto.estoque,
+              estoqueDisponivel: available,
               quantidadeSolicitada: item.quantidade,
               disponivel: false,
             };
@@ -70,7 +166,7 @@ class CarrinhoService {
 
           return {
             produto: produto.nome,
-            estoqueDisponivel: produto.estoque,
+            estoqueDisponivel: available,
             quantidadeSolicitada: item.quantidade,
             disponivel: true,
           };
@@ -184,11 +280,16 @@ class CarrinhoService {
     }
   }
 
-  // Buscar produto por ID
+  // Buscar produto por ID (preferindo público)
   async buscarProduto(idProduto) {
     try {
-      const response = await api.get(`/produto/${idProduto}`);
-      return response.data;
+      try {
+        const response = await api.get(`/produto/public/${idProduto}`);
+        return response.data;
+      } catch {
+        const response = await api.get(`/produto/${idProduto}`);
+        return response.data;
+      }
     } catch (error) {
       console.error("Erro ao buscar produto:", error);
       throw new Error("Produto não encontrado");
