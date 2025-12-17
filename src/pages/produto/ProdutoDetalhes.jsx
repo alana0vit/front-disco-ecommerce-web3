@@ -15,6 +15,15 @@ const ProdutoDetalhes = () => {
   const [quantity, setQuantity] = useState(1);
   const [addedToCart, setAddedToCart] = useState(false);
 
+  // Estoque disponível = total - reservado (preferindo campo vindo da API)
+  const available =
+    (product?.estoqueDisponivel ??
+      Math.max(
+        0,
+        (product?.estoqueTotal ?? product?.estoque ?? 0) -
+          (product?.estoqueReservado ?? 0)
+      )) || 0;
+
   useEffect(() => {
     loadProduct();
   }, [id]);
@@ -49,8 +58,8 @@ const ProdutoDetalhes = () => {
       return;
     }
 
-    // Limita pela quantidade em estoque
-    const maxQuantity = product ? product.estoque : 1;
+    // Limita pela quantidade em estoque disponível
+    const maxQuantity = product ? available : 1;
     const finalQuantity = Math.min(numValue, maxQuantity);
 
     setQuantity(finalQuantity);
@@ -72,7 +81,7 @@ const ProdutoDetalhes = () => {
 
   const incrementQuantity = () => {
     if (!product) return;
-    const newQuantity = Math.min(product.estoque, quantity + 1);
+    const newQuantity = Math.min(available, quantity + 1);
     setQuantity(newQuantity);
   };
 
@@ -82,7 +91,7 @@ const ProdutoDetalhes = () => {
   };
 
   const addToCart = () => {
-    if (!product || product.estoque === 0 || !product.ativo) return;
+    if (!product || available === 0 || !product.ativo) return;
 
     // Garante que a quantidade seja um número válido
     const finalQuantity = typeof quantity === "number" ? quantity : 1;
@@ -100,7 +109,7 @@ const ProdutoDetalhes = () => {
         description: product.descricao || "Descrição não disponível",
         price: parseFloat(product.preco),
         image: product.imagemUrl,
-        stock: product.estoque,
+        stock: available,
         category: product.categoria?.nome || "Sem categoria",
       };
 
@@ -224,11 +233,11 @@ const ProdutoDetalhes = () => {
                     </h4>
                     <p
                       className={`text-lg font-semibold ${
-                        product.estoque > 0 ? "text-green-600" : "text-red-600"
+                        available > 0 ? "text-green-600" : "text-red-600"
                       }`}
                     >
-                      {product.estoque > 0
-                        ? `${product.estoque} unidades`
+                      {available > 0
+                        ? `${available} unidades`
                         : "Esgotado"}
                     </p>
                   </div>
@@ -249,7 +258,7 @@ const ProdutoDetalhes = () => {
 
               {/* Ações */}
               <div className="border-t border-gray-200 pt-6">
-                {product.estoque > 0 && product.ativo ? (
+                {available > 0 && product.ativo ? (
                   <div className="space-y-6">
                     {/* Controle de Quantidade */}
                     <div className="bg-gray-50 rounded-lg p-4">
@@ -258,7 +267,7 @@ const ProdutoDetalhes = () => {
                           Quantidade:
                         </label>
                         <span className="text-xs text-gray-500">
-                          Máximo: {product.estoque} unidades
+                          Máximo: {available} unidades
                         </span>
                       </div>
 
@@ -276,7 +285,7 @@ const ProdutoDetalhes = () => {
                             <input
                               type="number"
                               min="1"
-                              max={product.estoque}
+                              max={available}
                               value={quantity}
                               onChange={handleQuantityChange}
                               onBlur={handleQuantityBlur}
@@ -286,7 +295,7 @@ const ProdutoDetalhes = () => {
 
                           <button
                             onClick={incrementQuantity}
-                            disabled={quantity >= product.estoque}
+                            disabled={quantity >= available}
                             className="w-12 h-12 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-200 flex items-center justify-center transition-all duration-200 shadow-sm"
                           >
                             <span className="text-lg font-semibold">+</span>

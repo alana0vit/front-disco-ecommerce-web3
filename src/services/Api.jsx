@@ -9,9 +9,15 @@ const api = axios.create({
   },
 });
 
-// Interceptor de request simplificado - SEM token por padrão
+// Interceptor de request: anexa JWT se existir
 api.interceptors.request.use(
   (config) => {
+    const token =
+      localStorage.getItem("discool_token") || localStorage.getItem("token");
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     console.log(`🔄 Fazendo requisição para: ${config.url}`);
     return config;
   },
@@ -41,6 +47,5 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-
 
 export default api;

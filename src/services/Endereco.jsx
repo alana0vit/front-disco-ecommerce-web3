@@ -1,5 +1,5 @@
 // src/services/EnderecoService.js
-import api from "./AuthService";
+import api from "./Api";
 
 class EnderecoService {
   async criarEndereco(idCliente, enderecoData) {
@@ -15,27 +15,22 @@ class EnderecoService {
 
   async listarEnderecos() {
     try {
-      // Preferir rota por cliente quando disponível
       const userStr = localStorage.getItem("discool_user");
       const user = userStr ? JSON.parse(userStr) : null;
-      if (user?.idCliente) {
-        try {
-          const response = await api.get(`/endereco/cliente/${user.idCliente}`);
-          return response.data;
-        } catch (err) {
-          // Fallback para lista geral em caso de erro específico
-          console.warn(
-            "Falha na rota por cliente, usando fallback /endereco",
-            err?.response?.status
-          );
-          const response = await api.get("/endereco");
-          // Filtra client-side como fallback
-          const data = Array.isArray(response.data) ? response.data : [];
-          return data.filter((e) => e?.cliente?.idCliente === user.idCliente);
-        }
-      } else {
-        const response = await api.get("/endereco");
+      // Resolve id do cliente a partir de possíveis formatos
+      const idCliente =
+        user?.idCliente || user?.id || user?.cliente?.idCliente || null;
+      if (!idCliente) throw new Error("Usuário não autenticado");
+
+      try {
+        const response = await api.get(`/endereco/cliente/${idCliente}`);
         return response.data;
+      } catch (err) {
+        const status = err?.response?.status;
+        if (status === 404) {
+          return [];
+        }
+        throw err;
       }
     } catch (error) {
       throw new Error(

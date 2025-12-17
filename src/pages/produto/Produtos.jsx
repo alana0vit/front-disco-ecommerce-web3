@@ -100,7 +100,15 @@ const Produtos = () => {
 
   // Adicionar ao carrinho
   const addToCart = (product) => {
-    if (product.estoque === 0) {
+    const available =
+      product.estoqueDisponivel ??
+      Math.max(
+        0,
+        (product.estoqueTotal ?? product.estoque ?? 0) -
+          (product.estoqueReservado ?? 0)
+      );
+
+    if (available === 0) {
       alert("Produto esgotado!");
       return;
     }
@@ -113,7 +121,7 @@ const Produtos = () => {
         description: product.descricao || "Descrição não disponível",
         price: parseFloat(product.preco),
         image: product.imagemUrl,
-        stock: product.estoque,
+        stock: available,
         category: product.categoria?.nome || "Sem categoria",
       };
 
@@ -334,7 +342,14 @@ const Produtos = () => {
                       />
                     </Link>
 
-                    {product.estoque === 0 && (
+                    {(
+                      (product.estoqueDisponivel ??
+                        Math.max(
+                          0,
+                          (product.estoqueTotal ?? product.estoque ?? 0) -
+                            (product.estoqueReservado ?? 0)
+                        )) === 0
+                    ) && (
                       <div className="absolute top-4 right-4 bg-red-500 text-white px-2 py-1 rounded-full text-sm font-semibold">
                         Esgotado
                       </div>
@@ -358,7 +373,14 @@ const Produtos = () => {
                         R$ {parseFloat(product.preco).toFixed(2)}
                       </span>
                       <span className="text-sm text-gray-500">
-                        Estoque: {product.estoque}
+                        Estoque: {
+                          product.estoqueDisponivel ??
+                            Math.max(
+                              0,
+                              (product.estoqueTotal ?? product.estoque ?? 0) -
+                                (product.estoqueReservado ?? 0)
+                            )
+                        }
                       </span>
                     </div>
 
@@ -372,7 +394,14 @@ const Produtos = () => {
                       </Link>
                       <button
                         onClick={() => addToCart(product)}
-                        disabled={product.estoque === 0}
+                        disabled={
+                          (product.estoqueDisponivel ??
+                            Math.max(
+                              0,
+                              (product.estoqueTotal ?? product.estoque ?? 0) -
+                                (product.estoqueReservado ?? 0)
+                            )) === 0
+                        }
                         className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white p-2 rounded-lg transition-colors"
                         title="Adicionar ao carrinho"
                       >
