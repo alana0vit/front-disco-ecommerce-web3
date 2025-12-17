@@ -118,6 +118,42 @@ export const authService = {
     }
   },
 
+  // Recuperação de senha: solicita email
+  forgotPassword: async ({ email }) => {
+    try {
+      const response = await api.post('/forgot-password', { email });
+      return { success: true, message: response.data?.message || 'Se o email existir, enviaremos instruções.' };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Falha ao solicitar recuperação',
+      };
+    }
+  },
+
+  // Valida token de reset
+  validateResetToken: async (token) => {
+    try {
+      const response = await api.get(`/validate-reset-token/${token}`);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return { success: false, message: 'Token inválido ou expirado' };
+    }
+  },
+
+  // Redefine senha com token
+  resetPassword: async ({ token, novaSenha }) => {
+    try {
+      const response = await api.post('/reset-password', { token, novaSenha });
+      return { success: true, message: response.data?.message || 'Senha redefinida com sucesso' };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Não foi possível redefinir a senha',
+      };
+    }
+  },
+
   register: async (data) => {
     try {
       const response = await api.post('/register', data);

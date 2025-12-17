@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Home from "./pages/Home";
-import Login from "./pages/Login";
+import Login from "./pages/auth/Login";
 import CadastroCliente from "./pages/cliente/Cadastro";
 import Perfil from "./pages/cliente/Perfil";
 import Produtos from "./pages/produto/Produtos";
@@ -25,6 +25,8 @@ import Pagamento from "./pages/pagamento/Pagamento";
 import ScrollToTop from "./components/ScrollToTop";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
 
 function App() {
   return (
@@ -37,6 +39,8 @@ function App() {
             {/* Rotas públicas */}
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
             <Route path="/cadastro" element={<CadastroCliente />} />
             <Route path="/produtos" element={<Produtos />} />
             <Route path="/produtos/show/:id" element={<ProdutoDetalhes />} />

@@ -1,8 +1,8 @@
 // src/pages/Login.jsx
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import Logo from "../assets/DISCOOL_logo.png";
-import { authService } from "../services/AuthService";
+import Logo from "../../assets/DISCOOL_logo.png";
+import { authService } from "../../services/AuthService";
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: "", senha: "" });
@@ -53,6 +53,13 @@ const Login = () => {
             className="font-medium text-purple-600 hover:text-purple-500"
           >
             Crie sua conta
+          </Link>
+          <span className="mx-2">•</span>
+          <Link
+            to="/forgot-password"
+            className="font-medium text-purple-600 hover:text-purple-500"
+          >
+            Esqueci minha senha
           </Link>
         </p>
       </div>
